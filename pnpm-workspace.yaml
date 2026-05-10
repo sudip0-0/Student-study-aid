@@ -1,0 +1,7 @@
+packages:
+  - "client"
+  - "server"
+allowBuilds:
+  canvas: true
+  esbuild: true
+  msgpackr-extract: true

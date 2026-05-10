@@ -1,0 +1,21 @@
+{
+  "name": "lumio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter server build",
+    "dev": "concurrently \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
+    "db:push": "pnpm --filter server db:push",
+    "db:studio": "pnpm --filter server db:studio"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "canvas",
+      "esbuild",
+      "msgpackr-extract"
+    ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
