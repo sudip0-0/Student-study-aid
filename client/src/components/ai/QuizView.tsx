@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
-import { Loader2, Check, X } from "lucide-react";
-import { useSaveQuizAttempt } from "../../hooks";
+import { Loader2, Check, X, ChevronLeft, ChevronDown } from "lucide-react";
+import { useSaveQuizAttempt, useQuizzesByFile, useDeleteQuiz } from "../../hooks";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { Quiz, QuizQuestion } from "../../types";
 
@@ -11,21 +11,23 @@ interface QuizViewProps {
 }
 
 export default function QuizView({ fileId, mutation }: QuizViewProps) {
+  const { data: savedQuizzes = [] } = useQuizzesByFile(fileId);
+  const deleteQuiz = useDeleteQuiz();
   const [count, setCount] = useState(5);
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [finished, setFinished] = useState(false);
   const saveAttempt = useSaveQuizAttempt();
 
   const handleGenerate = () => {
     setError(null);
-    setAnswers({});
-    setSubmitted(false);
     mutation.mutate(
       { fileId, count },
       {
-        onSuccess: (data) => setQuiz(data),
+        onSuccess: (data) => openQuiz(data),
         onError: (err: Error) => {
           const msg = (err as unknown as { response?: { data?: { error?: string } } }).response?.data?.error || err.message;
           setError(msg);
@@ -34,25 +36,136 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
     );
   };
 
-  const handleAnswer = (qIdx: number, option: string) => {
-    if (submitted) return;
-    setAnswers((prev) => ({ ...prev, [qIdx]: option }));
+  const openQuiz = (quiz: Quiz) => {
+    setActiveQuiz(quiz);
+    setCurrentIdx(0);
+    setAnswers({});
+    setShowHint(false);
+    setFinished(false);
+    setError(null);
   };
 
-  const handleSubmit = () => {
-    if (!quiz) return;
-    const questions = quiz.questions as QuizQuestion[];
-    const correct = questions.filter((q, i) => answers[i] === q.answer).length;
-    const score = Math.round((correct / questions.length) * 100);
-    saveAttempt.mutate({ id: quiz.id, score });
-    setSubmitted(true);
+  const backToList = () => {
+    setActiveQuiz(null);
+    setFinished(false);
   };
 
-  const questions = quiz?.questions as QuizQuestion[] | undefined;
-  const correctCount = questions
-    ? questions.filter((q, i) => answers[i] === q.answer).length
-    : 0;
+  // Active quiz - one question at a time
+  if (activeQuiz) {
+    const questions = activeQuiz.questions as QuizQuestion[];
 
+    if (finished) {
+      const correctCount = questions.filter((q, i) => answers[i] === q.answer).length;
+      const score = Math.round((correctCount / questions.length) * 100);
+
+      return (
+        <div className="space-y-4">
+          <button onClick={backToList} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+            <ChevronLeft className="h-3 w-3" /> Back
+          </button>
+          <div className="text-center space-y-2 py-4">
+            <p className="text-2xl font-bold">{score}%</p>
+            <p className="text-sm text-muted-foreground">
+              {correctCount} of {questions.length} correct
+            </p>
+          </div>
+          <div className="space-y-2 max-h-[300px] overflow-auto">
+            {questions.map((q, i) => (
+              <div key={i} className={`text-xs p-2 rounded border ${answers[i] === q.answer ? "border-green-500/50 bg-green-50 dark:bg-green-950/30" : "border-red-500/50 bg-red-50 dark:bg-red-950/30"}`}>
+                <p className="font-medium">{i + 1}. {q.question}</p>
+                <p className="text-muted-foreground mt-0.5">
+                  Your answer: {answers[i] ? q.options[answers[i].charCodeAt(0) - 65] : "—"}
+                  {answers[i] !== q.answer && <> · Correct: {q.options[q.answer.charCodeAt(0) - 65]}</>}
+                </p>
+              </div>
+            ))}
+          </div>
+          <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => openQuiz(activeQuiz)}>
+            Retake
+          </Button>
+        </div>
+      );
+    }
+
+    const q = questions[currentIdx];
+    const selected = answers[currentIdx];
+
+    const handleNext = () => {
+      setShowHint(false);
+      if (currentIdx < questions.length - 1) {
+        setCurrentIdx(currentIdx + 1);
+      } else {
+        // Last question - submit
+        const correctCount = questions.filter((qu, i) => answers[i] === qu.answer).length;
+        const score = Math.round((correctCount / questions.length) * 100);
+        saveAttempt.mutate({ id: activeQuiz.id, score });
+        setFinished(true);
+      }
+    };
+
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={backToList} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+            <ChevronLeft className="h-3 w-3" /> Back
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{currentIdx + 1} / {questions.length}</span>
+            <Button
+              size="sm"
+              onClick={handleNext}
+              disabled={!selected}
+              className="text-xs h-7 px-2.5"
+            >
+              {currentIdx < questions.length - 1 ? "Next" : "Finish"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-3">
+          <p className="text-sm font-medium leading-relaxed">{q.question}</p>
+
+          <div className="space-y-1.5">
+            {q.options.map((opt, oIdx) => {
+              const letter = String.fromCharCode(65 + oIdx);
+              const isSelected = selected === letter;
+
+              return (
+                <button
+                  key={oIdx}
+                  onClick={() => setAnswers((prev) => ({ ...prev, [currentIdx]: letter }))}
+                  className={`w-full text-left text-xs px-3 py-2.5 rounded-lg border transition-colors ${
+                    isSelected
+                      ? "border-primary bg-primary/10 font-medium"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  {letter}.  {opt}
+                </button>
+              );
+            })}
+          </div>
+
+          {showHint && q.explanation && (
+            <p className="text-[11px] text-muted-foreground bg-muted p-2 rounded">{q.explanation}</p>
+          )}
+        </div>
+
+        <div className="flex items-center pt-3 mt-auto border-t">
+          {q.explanation ? (
+            <button
+              onClick={() => setShowHint(!showHint)}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Hint <ChevronDown className={`h-3 w-3 transition-transform ${showHint ? "rotate-180" : ""}`} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  // Quiz list view
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -72,9 +185,7 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
           disabled={mutation.isPending}
           className="h-8 text-xs"
         >
-          {mutation.isPending ? (
-            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-          ) : null}
+          {mutation.isPending && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
           Generate
         </Button>
       </div>
@@ -82,76 +193,36 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
       {mutation.isPending && (
         <p className="text-xs text-muted-foreground">Generating quiz...</p>
       )}
-
       {error && <p className="text-xs text-destructive">{error}</p>}
 
-      {questions && (
-        <div className="space-y-4 max-h-[400px] overflow-auto">
-          {questions.map((q, qIdx) => (
-            <div key={qIdx} className="rounded-md border p-3">
-              <p className="text-xs font-medium mb-2">
-                {qIdx + 1}. {q.question}
-              </p>
-              <div className="space-y-1">
-                {q.options.map((opt, oIdx) => {
-                  const letter = String.fromCharCode(65 + oIdx);
-                  const isSelected = answers[qIdx] === letter;
-                  const isCorrect = q.answer === letter;
-                  const showResult = submitted;
-
-                  return (
-                    <button
-                      key={oIdx}
-                      onClick={() => handleAnswer(qIdx, letter)}
-                      disabled={submitted}
-                      className={`w-full text-left text-xs px-2 py-1.5 rounded border transition-colors ${
-                        showResult && isCorrect
-                          ? "border-green-500 bg-green-50 text-green-800"
-                          : showResult && isSelected && !isCorrect
-                          ? "border-red-500 bg-red-50 text-red-800"
-                          : isSelected
-                          ? "border-primary bg-primary/10"
-                          : "border-transparent hover:bg-muted"
-                      }`}
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <span className="font-medium">{letter}.</span>
-                        {opt}
-                        {showResult && isCorrect && <Check className="h-3 w-3 text-green-600 ml-auto" />}
-                        {showResult && isSelected && !isCorrect && <X className="h-3 w-3 text-red-600 ml-auto" />}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              {submitted && q.explanation && (
-                <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
-                  {q.explanation}
+      {savedQuizzes.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Saved Quizzes</p>
+          {savedQuizzes.map((q) => (
+            <div
+              key={q.id}
+              className="flex items-center justify-between border rounded-md px-2.5 py-2 hover:bg-muted/50 cursor-pointer"
+              onClick={() => openQuiz(q)}
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-medium truncate">{q.title}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {(q.questions as QuizQuestion[]).length} questions
+                  {q.score !== null && ` · Last: ${q.score}%`}
                 </p>
-              )}
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); if (confirm("Delete this quiz?")) deleteQuiz.mutate(q.id); }}
+                className="text-muted-foreground hover:text-destructive p-1 shrink-0"
+              >
+                <X className="h-3 w-3" />
+              </button>
             </div>
           ))}
-
-          {!submitted && Object.keys(answers).length === questions.length && (
-            <Button size="sm" onClick={handleSubmit} className="w-full text-xs">
-              Submit Answers
-            </Button>
-          )}
-
-          {submitted && (
-            <div className="text-center p-2 bg-muted rounded-md">
-              <p className="text-sm font-semibold">
-                Score: {correctCount}/{questions.length} ({Math.round((correctCount / questions.length) * 100)}%)
-              </p>
-              {saveAttempt.isPending && (
-                <p className="text-xs text-muted-foreground">Saving...</p>
-              )}
-            </div>
-          )}
         </div>
       )}
 
-      {!quiz && !mutation.isPending && !error && (
+      {savedQuizzes.length === 0 && !mutation.isPending && !error && (
         <p className="text-xs text-muted-foreground">
           Generate a multiple-choice quiz from this document.
         </p>

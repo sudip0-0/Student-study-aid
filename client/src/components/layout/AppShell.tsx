@@ -109,7 +109,7 @@ export default function AppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       <aside
         className={cn(
           "border-r bg-card shrink-0 transition-all duration-200 overflow-hidden",
@@ -166,7 +166,7 @@ export default function AppShell() {
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
         </header>
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main className={cn("flex-1 overflow-hidden", location.pathname.startsWith("/study/") ? "" : "p-4 lg:p-6 overflow-auto")}>
           <Outlet context={{ activeFolderId, setActiveFolderId }} />
         </main>
       </div>

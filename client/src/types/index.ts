@@ -83,6 +83,14 @@ export interface CheatsheetSection {
   points: string[];
 }
 
+export interface Cheatsheet {
+  id: string;
+  fileId: string;
+  title: string;
+  sections: CheatsheetSection[];
+  createdAt: string;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;

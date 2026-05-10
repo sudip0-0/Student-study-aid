@@ -5,6 +5,7 @@ export { notes } from "./notes";
 export { highlights } from "./highlights";
 export { quizzes } from "./quizzes";
 export { flashcards } from "./flashcards";
+export { cheatsheets } from "./cheatsheets";
 export {
   usersRelations,
   foldersRelations,

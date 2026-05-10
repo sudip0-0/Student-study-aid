@@ -11,7 +11,7 @@ import {
   chat,
 } from "../services/ai.service";
 import { db } from "../db/index";
-import { users, files, quizzes, flashcards } from "../db/schema";
+import { users, files, quizzes, flashcards, cheatsheets } from "../db/schema";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { decryptSecret } from "../utils/encrypt";
 
@@ -124,7 +124,16 @@ export const cheatsheetDoc = asyncHandler<AuthRequest>(async (req, res: Response
   const text = await getFileText(fileId, req.user.id);
   const { apiKey, aiModel } = await getAiSettings(req.user.id);
   const data = await generateCheatsheet(apiKey, aiModel, text);
-  res.json({ data, message: "Cheatsheet generated" });
+  const [saved] = await db
+    .insert(cheatsheets)
+    .values({
+      userId: req.user.id,
+      fileId,
+      title: `Cheatsheet - ${new Date().toLocaleDateString()}`,
+      sections: data,
+    })
+    .returning();
+  res.json({ data: saved, message: "Cheatsheet generated and saved" });
 });
 
 export const explainDoc = asyncHandler<AuthRequest>(async (req, res: Response) => {

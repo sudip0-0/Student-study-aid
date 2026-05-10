@@ -150,10 +150,14 @@ export function useGenerateFlashcards() {
 }
 
 export function useGenerateCheatsheet() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ fileId }: { fileId: string }) => {
       const { data } = await api.post("/ai/cheatsheet", { fileId });
-      return data.data as { title: string; points: string[] }[];
+      return data.data as import("../types").Cheatsheet;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cheatsheets"] });
     },
   });
 }
@@ -253,6 +257,29 @@ export function useDeleteFlashcard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["flashcards"] });
+    },
+  });
+}
+
+export function useCheatsheets(fileId: string) {
+  return useQuery<import("../types").Cheatsheet[]>({
+    queryKey: ["cheatsheets", fileId],
+    queryFn: async () => {
+      const { data } = await api.get(`/cheatsheets/file/${fileId}`);
+      return data.data;
+    },
+    enabled: !!fileId,
+  });
+}
+
+export function useDeleteCheatsheet() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/cheatsheets/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cheatsheets"] });
     },
   });
 }

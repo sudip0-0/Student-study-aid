@@ -62,7 +62,7 @@ export default function Study() {
   ];
 
   return (
-    <div className="flex flex-col h-full -m-6">
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-4 px-4 py-2 border-b shrink-0">
         <Link to="/" className="p-1 rounded hover:bg-accent">
           <ArrowLeft className="h-4 w-4" />
@@ -79,7 +79,7 @@ export default function Study() {
         </div>
       </div>
 
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
         <div className="flex-[3] min-w-0 border-r overflow-hidden">
           {file.type === "pdf" ? (
             <PDFViewer
@@ -110,7 +110,7 @@ export default function Study() {
           )}
         </div>
 
-        <div className="flex-[2] min-w-0 flex flex-col bg-card">
+        <div className="flex-[2] min-w-0 flex flex-col bg-card overflow-hidden">
           <div className="flex border-b shrink-0">
             {tabs.map((tab) => (
               <button

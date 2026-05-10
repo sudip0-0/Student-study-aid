@@ -12,6 +12,7 @@ import { quizRouter } from "./routes/quiz.routes";
 import { flashcardRouter } from "./routes/flashcard.routes";
 import { searchRouter } from "./routes/search.routes";
 import { uploadRouter } from "./routes/upload.routes";
+import { cheatsheetRouter } from "./routes/cheatsheet.routes";
 import { authMiddleware } from "./middleware/auth.middleware";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { rateLimit } from "express-rate-limit";
@@ -53,6 +54,7 @@ app.use("/api/upload", express.json({ limit: "50mb" }), uploadRouter);
 app.use("/api/ai", authMiddleware, aiLimiter, aiRouter);
 app.use("/api/quizzes", authMiddleware, quizRouter);
 app.use("/api/flashcards", authMiddleware, flashcardRouter);
+app.use("/api/cheatsheets", authMiddleware, cheatsheetRouter);
 app.use("/api/search", authMiddleware, searchRouter);
 
 // Health check
