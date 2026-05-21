@@ -38,14 +38,14 @@ export default function CheatsheetView({ fileId, mutation }: CheatsheetViewProps
         <button onClick={() => setActive(null)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
           <ChevronLeft className="h-3 w-3" /> Back
         </button>
-        <p className="text-xs font-medium">{active.title}</p>
+        <p className="rounded-md border-2 border-border bg-accent-soft px-3 py-2 text-xs font-extrabold">{active.title}</p>
         <div className="space-y-4 max-h-[400px] overflow-auto">
           {sections.map((section, i) => (
-            <div key={i}>
-              <h4 className="text-xs font-semibold mb-1.5 text-primary">{section.title}</h4>
+            <div key={i} className="rounded-md border-2 border-border bg-surface p-3 shadow-neoSm">
+              <h4 className="mb-1.5 text-xs font-extrabold text-primary">{section.title}</h4>
               <ul className="space-y-1">
                 {section.points.map((point, j) => (
-                  <li key={j} className="text-xs text-muted-foreground flex gap-1.5">
+                  <li key={j} className="flex gap-1.5 text-xs font-bold text-muted-foreground">
                     <span className="text-primary shrink-0">•</span>
                     {point}
                   </li>
@@ -66,25 +66,26 @@ export default function CheatsheetView({ fileId, mutation }: CheatsheetViewProps
         Generate Cheatsheet
       </Button>
 
-      {mutation.isPending && <p className="text-xs text-muted-foreground">Generating cheatsheet...</p>}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {mutation.isPending && <p className="rounded-md border-2 border-border bg-surface-muted px-3 py-2 text-xs font-bold text-muted-foreground">Generating cheatsheet...</p>}
+      {error && <p className="rounded-md border-2 border-border bg-danger-soft px-3 py-2 text-xs font-bold text-foreground">{error}</p>}
 
       {saved.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">Saved Cheatsheets</p>
+          <p className="font-mono text-xs font-bold text-muted-foreground">Saved Cheatsheets</p>
           {saved.map((cs) => (
             <div
               key={cs.id}
-              className="flex items-center justify-between border rounded-md px-2.5 py-2 hover:bg-muted/50 cursor-pointer"
+              className="flex cursor-pointer items-center justify-between rounded-md border-2 border-border bg-surface px-2.5 py-2 shadow-neoSm hover:bg-accent-soft"
               onClick={() => setActive(cs)}
             >
               <div className="min-w-0">
-                <p className="text-xs font-medium truncate">{cs.title}</p>
+                <p className="truncate text-xs font-bold">{cs.title}</p>
                 <p className="text-[11px] text-muted-foreground">{(cs.sections as CheatsheetSection[]).length} sections</p>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); if (confirm("Delete this cheatsheet?")) deleteCheatsheet.mutate(cs.id); }}
-                className="text-muted-foreground hover:text-destructive p-1 shrink-0"
+                className="shrink-0 p-1 text-muted-foreground hover:text-destructive"
+                aria-label={`Delete ${cs.title}`}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -94,7 +95,7 @@ export default function CheatsheetView({ fileId, mutation }: CheatsheetViewProps
       )}
 
       {saved.length === 0 && !mutation.isPending && !error && (
-        <p className="text-xs text-muted-foreground">Generate a structured cheatsheet organized by topic.</p>
+        <p className="neo-empty p-4 text-center text-xs font-bold text-muted-foreground">Generate a structured cheatsheet organized by topic.</p>
       )}
     </div>
   );

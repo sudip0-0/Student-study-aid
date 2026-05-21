@@ -49,17 +49,17 @@ export default function FlashcardView({ fileId, mutation }: FlashcardViewProps) 
           <button onClick={() => setActiveDeck(null)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
             <ChevronLeft className="h-3 w-3" /> Back
           </button>
-          <span className="text-xs text-muted-foreground">{cardIdx + 1} / {cards.length}</span>
+          <span className="font-mono text-xs font-bold text-muted-foreground">{cardIdx + 1} / {cards.length}</span>
         </div>
 
         <div
           onClick={() => setFlipped(!flipped)}
-          className="cursor-pointer min-h-[120px] rounded-lg border-2 p-4 flex items-center justify-center text-center transition-all hover:border-primary/50 select-none"
+          className="flex min-h-[140px] cursor-pointer select-none items-center justify-center rounded-neoLg border-[3px] border-border bg-surface p-4 text-center shadow-neoMd transition-all hover:bg-accent-soft"
         >
           {flipped ? (
-            <p className="text-xs leading-relaxed">{cards[cardIdx].back}</p>
+            <p className="text-xs font-bold leading-relaxed">{cards[cardIdx].back}</p>
           ) : (
-            <p className="text-sm font-medium">{cards[cardIdx].front}</p>
+            <p className="text-sm font-extrabold">{cards[cardIdx].front}</p>
           )}
         </div>
 
@@ -85,7 +85,7 @@ export default function FlashcardView({ fileId, mutation }: FlashcardViewProps) 
         <select
           value={count}
           onChange={(e) => setCount(Number(e.target.value))}
-          className="h-8 rounded-md border bg-background px-2 text-xs"
+          className="min-h-10 rounded-md border-2 border-border bg-surface px-2 font-mono text-xs font-bold shadow-neoSm"
         >
           <option value={5}>5 cards</option>
           <option value={10}>10 cards</option>
@@ -102,20 +102,21 @@ export default function FlashcardView({ fileId, mutation }: FlashcardViewProps) 
 
       {savedDecks.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">Saved Decks</p>
+        <p className="font-mono text-xs font-bold text-muted-foreground">Saved Decks</p>
           {savedDecks.map((deck) => (
             <div
               key={deck.id}
-              className="flex items-center justify-between border rounded-md px-2.5 py-2 hover:bg-muted/50 cursor-pointer"
+              className="flex cursor-pointer items-center justify-between rounded-md border-2 border-border bg-surface px-2.5 py-2 shadow-neoSm hover:bg-accent-soft"
               onClick={() => openDeck(deck)}
             >
               <div className="min-w-0">
-                <p className="text-xs font-medium truncate">{deck.deckName}</p>
+                <p className="truncate text-xs font-bold">{deck.deckName}</p>
                 <p className="text-[11px] text-muted-foreground">{(deck.cards as Flashcard[]).length} cards</p>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); if (confirm("Delete this deck?")) deleteDeck.mutate(deck.id); }}
                 className="text-muted-foreground hover:text-destructive p-1 shrink-0"
+                aria-label={`Delete ${deck.deckName}`}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -125,7 +126,7 @@ export default function FlashcardView({ fileId, mutation }: FlashcardViewProps) 
       )}
 
       {savedDecks.length === 0 && !mutation.isPending && !error && (
-        <p className="text-xs text-muted-foreground">Generate flashcards to review key concepts.</p>
+        <p className="neo-empty p-4 text-center text-xs font-bold text-muted-foreground">Generate flashcards to review key concepts.</p>
       )}
     </div>
   );

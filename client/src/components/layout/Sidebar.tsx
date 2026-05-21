@@ -9,49 +9,53 @@ interface SidebarProps {
   activeFolderId: string | null;
   onSelectFolder: (folderId: string | null) => void;
   onUploadToFolder: (folderId: string | null) => void;
+  onClose?: () => void;
 }
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    "flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors",
-    isActive ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+    "flex min-h-11 items-center gap-2.5 rounded-md border-2 px-3 py-2 text-sm font-extrabold transition-[background-color,box-shadow,transform,color]",
+    isActive
+      ? "border-border bg-accent text-accent-foreground shadow-neoSm"
+      : "border-transparent text-muted-foreground hover:border-border hover:bg-accent-soft hover:text-foreground"
   );
 
-export default function Sidebar({ activeFolderId, onSelectFolder, onUploadToFolder }: SidebarProps) {
+export default function Sidebar({ activeFolderId, onSelectFolder, onUploadToFolder, onClose }: SidebarProps) {
   const user = useAuthStore((s) => s.user);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-        <NavLink to="/" className="text-lg font-semibold tracking-tight">
+      <div className="flex shrink-0 items-center justify-between border-b-2 border-border px-4 py-3">
+        <NavLink to="/" className="font-heading text-xl font-black tracking-tight" onClick={onClose}>
           Lumio
         </NavLink>
         <button
-          onClick={toggleSidebar}
-          className="p-1 rounded-md hover:bg-accent md:hidden"
+          onClick={onClose ?? toggleSidebar}
+          className="rounded-md border-2 border-transparent p-1 hover:border-border hover:bg-accent lg:hidden"
+          aria-label="Close sidebar"
         >
           <PanelLeftClose className="h-4 w-4" />
         </button>
       </div>
 
       {user && (
-        <div className="px-4 py-3 border-b shrink-0">
-          <p className="text-sm font-medium truncate">{user.name}</p>
+        <div className="shrink-0 border-b-2 border-border bg-primary-soft px-4 py-3">
+          <p className="truncate text-sm font-extrabold">{user.name}</p>
           <p className="text-xs text-muted-foreground truncate">{user.email}</p>
         </div>
       )}
 
-      <nav className="px-2 py-2 space-y-0.5 shrink-0">
-        <NavLink to="/" end className={navLinkClass}>
+      <nav className="shrink-0 space-y-1.5 px-2 py-3">
+        <NavLink to="/" end className={navLinkClass} onClick={onClose}>
           <LayoutDashboard className="h-4 w-4" />
           Dashboard
         </NavLink>
-        <NavLink to="/quizzes" className={navLinkClass}>
+        <NavLink to="/quizzes" className={navLinkClass} onClick={onClose}>
           <ScrollText className="h-4 w-4" />
           Quizzes
         </NavLink>
-        <NavLink to="/settings" className={navLinkClass}>
+        <NavLink to="/settings" className={navLinkClass} onClick={onClose}>
           <Settings className="h-4 w-4" />
           Settings
         </NavLink>

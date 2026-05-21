@@ -24,8 +24,8 @@ function App() {
 
   if (!isInitialized || isInitializing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-sm text-muted-foreground">
-        Loading...
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 text-sm font-bold text-muted-foreground">
+        <div className="neo-box px-5 py-3">Loading Lumio...</div>
       </div>
     );
   }

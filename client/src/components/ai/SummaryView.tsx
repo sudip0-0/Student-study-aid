@@ -33,7 +33,7 @@ export default function SummaryView({ fileId, mutation }: SummaryViewProps) {
         <select
           value={length}
           onChange={(e) => setLength(e.target.value as "short" | "medium" | "long")}
-          className="h-8 rounded-md border bg-background px-2 text-xs"
+          className="min-h-10 rounded-md border-2 border-border bg-surface px-2 font-mono text-xs font-bold shadow-neoSm"
         >
           <option value="short">Short</option>
           <option value="medium">Medium</option>
@@ -54,21 +54,21 @@ export default function SummaryView({ fileId, mutation }: SummaryViewProps) {
       </div>
 
       {mutation.isPending && (
-        <p className="text-xs text-muted-foreground">Generating summary...</p>
+        <p className="rounded-md border-2 border-border bg-surface-muted px-3 py-2 text-xs font-bold text-muted-foreground">Generating summary...</p>
       )}
 
       {error && (
-        <p className="text-xs text-destructive">{error}</p>
+        <p className="rounded-md border-2 border-border bg-danger-soft px-3 py-2 text-xs font-bold text-foreground">{error}</p>
       )}
 
       {result && !mutation.isPending && (
-        <div className="text-xs leading-relaxed whitespace-pre-wrap bg-muted/50 rounded-md p-3 max-h-[400px] overflow-auto">
+        <div className="max-h-[400px] overflow-auto rounded-md border-2 border-border bg-surface p-3 text-xs font-medium leading-relaxed whitespace-pre-wrap shadow-neoSm">
           {result}
         </div>
       )}
 
       {!result && !mutation.isPending && !error && (
-        <p className="text-xs text-muted-foreground">
+        <p className="neo-empty p-4 text-center text-xs font-bold text-muted-foreground">
           Choose a length and generate a summary of this document.
         </p>
       )}

@@ -16,16 +16,16 @@ const tabs: { value: FileTypeFilter; label: string }[] = [
 
 export default function FilterTabs({ active, onChange }: FilterTabsProps) {
   return (
-    <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted">
+    <div className="flex items-center gap-1 overflow-x-auto rounded-md border-2 border-border bg-surface-muted p-1">
       {tabs.map((tab) => (
         <button
           key={tab.value}
           onClick={() => onChange(tab.value)}
           className={cn(
-            "px-3 py-1 text-xs font-medium rounded-sm transition-colors",
+            "min-h-9 rounded-sm border-2 px-3 py-1 font-mono text-xs font-extrabold transition-colors",
             active === tab.value
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
+              ? "border-border bg-surface text-foreground shadow-neoSm"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
           {tab.label}

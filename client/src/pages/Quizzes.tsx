@@ -17,15 +17,18 @@ export default function Quizzes() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-40">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <div className="neo-box flex items-center gap-2 px-5 py-3 text-sm font-bold text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading quizzes...
+        </div>
       </div>
     );
   }
 
   if (isError || !quizzes) {
     return (
-      <div className="flex flex-col items-center justify-center h-40 gap-2">
-        <p className="text-sm text-muted-foreground">Failed to load quizzes.</p>
+      <div className="neo-empty flex h-40 flex-col items-center justify-center gap-2">
+        <p className="text-sm font-extrabold text-foreground">Failed to load quizzes.</p>
       </div>
     );
   }
@@ -66,13 +69,13 @@ export default function Quizzes() {
     ).length;
 
     return (
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">{activeQuiz.title}</h2>
+            <h2 className="font-heading text-2xl font-black">{activeQuiz.title}</h2>
             <Link
               to={`/study/${activeQuiz.fileId}`}
-              className="text-xs text-muted-foreground hover:underline"
+              className="text-xs font-bold text-muted-foreground hover:underline"
             >
               View source document
             </Link>
@@ -88,8 +91,8 @@ export default function Quizzes() {
             const isCorrect = q.answer;
             const showResult = submitted;
             return (
-              <div key={qIdx} className="rounded-lg border p-4">
-                <p className="text-sm font-medium mb-2">
+              <div key={qIdx} className="neo-box p-4">
+                <p className="mb-3 text-sm font-extrabold">
                   {qIdx + 1}. {q.question}
                 </p>
                 <div className="space-y-1.5">
@@ -102,14 +105,14 @@ export default function Quizzes() {
                         key={oIdx}
                         onClick={() => handleAnswer(qIdx, letter)}
                         disabled={submitted}
-                        className={`w-full text-left text-sm px-3 py-2 rounded-md border transition-colors ${
+                        className={`min-h-11 w-full rounded-md border-2 px-3 py-2 text-left text-sm font-bold transition-colors ${
                           showResult && thisIsCorrect
-                            ? "border-green-500 bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200"
+                            ? "border-border bg-success-soft text-foreground"
                             : showResult && userPicked && !thisIsCorrect
-                            ? "border-red-500 bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200"
+                            ? "border-border bg-danger-soft text-foreground"
                             : userPicked
-                            ? "border-primary bg-primary/10"
-                            : "border-transparent hover:bg-muted"
+                            ? "border-border bg-primary-soft"
+                            : "border-transparent hover:border-border hover:bg-accent-soft"
                         }`}
                       >
                         <span className="flex items-center gap-2">
@@ -142,7 +145,7 @@ export default function Quizzes() {
               </Button>
             )}
             {submitted && (
-              <div className="flex-1 p-3 bg-muted rounded-lg text-center">
+              <div className="flex-1 rounded-neoLg border-2 border-border bg-accent-soft p-3 text-center shadow-neoSm">
                 <p className="text-base font-semibold">
                   Score: {correctCount}/{activeQuestions.length} ({Math.round((correctCount / activeQuestions.length) * 100)}%)
                 </p>
@@ -161,13 +164,19 @@ export default function Quizzes() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Quizzes</h2>
+    <div className="mx-auto max-w-4xl space-y-5">
+      <div className="app-panel p-5">
+        <p className="font-mono text-[11px] font-extrabold uppercase text-muted-foreground">Practice history</p>
+        <h1 className="app-section-title text-3xl sm:text-4xl">Quizzes</h1>
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
+          Review generated quizzes, retry attempts, and jump back to source documents.
+        </p>
+      </div>
 
       {quizzes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground">
-          <p className="text-sm">No quizzes yet.</p>
-          <p className="text-xs">Open a document and generate a quiz from the AI panel.</p>
+        <div className="neo-empty flex h-40 flex-col items-center justify-center gap-2 text-center">
+          <p className="text-base font-extrabold text-foreground">No quizzes yet.</p>
+          <p className="text-sm text-muted-foreground">Open a document and generate a quiz from the AI panel.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -176,10 +185,10 @@ export default function Quizzes() {
             return (
               <div
                 key={quiz.id}
-                className="flex items-center gap-4 rounded-lg border p-4"
+                className="neo-box flex flex-col gap-4 p-4 sm:flex-row sm:items-center"
               >
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium truncate">{quiz.title}</h3>
+                  <h3 className="truncate text-sm font-extrabold">{quiz.title}</h3>
                   {quiz.fileName && (
                     <p className="text-xs text-muted-foreground truncate">
                       {quiz.fileName}
@@ -189,7 +198,7 @@ export default function Quizzes() {
                     {questions.length} questions
                     {quiz.score !== null && (
                       <span className="ml-2 font-medium">
-                        • Score: {quiz.score}%
+                        - Score: {quiz.score}%
                       </span>
                     )}
                   </p>
@@ -197,12 +206,12 @@ export default function Quizzes() {
                     {new Date(quiz.createdAt).toLocaleDateString()}
                     {quiz.attemptedAt && (
                       <span className="ml-2">
-                        • Attempted: {new Date(quiz.attemptedAt).toLocaleDateString()}
+                        - Attempted: {new Date(quiz.attemptedAt).toLocaleDateString()}
                       </span>
                     )}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex shrink-0 items-center gap-1.5">
                   <Button
                     size="sm"
                     variant="outline"
@@ -220,6 +229,7 @@ export default function Quizzes() {
                     }}
                     disabled={deleteQuiz.isPending}
                     className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    aria-label={`Delete ${quiz.title}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

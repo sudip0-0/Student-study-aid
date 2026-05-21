@@ -43,7 +43,7 @@ export default function NoteEditor({ fileId, note, onCancel }: NoteEditorProps) 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-2 shrink-0">
-        <p className="text-xs text-muted-foreground">
+        <p className="font-mono text-xs font-bold text-muted-foreground">
           {isEditing ? "Edit note" : "New note"}
         </p>
         <div className="flex items-center gap-1">
@@ -54,6 +54,7 @@ export default function NoteEditor({ fileId, note, onCancel }: NoteEditorProps) 
               className="h-7 w-7"
               onClick={handleDelete}
               disabled={deleteNote.isPending}
+              aria-label="Delete note"
             >
               <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
             </Button>
@@ -62,7 +63,7 @@ export default function NoteEditor({ fileId, note, onCancel }: NoteEditorProps) 
       </div>
 
       <textarea
-        className="flex-1 w-full resize-none rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent min-h-[200px]"
+        className="min-h-[200px] w-full flex-1 resize-none rounded-neoLg border-2 border-border bg-surface px-3 py-2 text-sm font-medium shadow-neoSm focus:outline-none"
         placeholder="Write your notes here... (markdown supported)"
         value={content}
         onChange={(e) => setContent(e.target.value)}

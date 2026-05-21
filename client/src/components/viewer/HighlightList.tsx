@@ -46,15 +46,17 @@ export default function HighlightList({ fileId, onJumpToHighlight }: HighlightLi
   };
 
   if (isLoading) {
-    return <p className="text-xs text-muted-foreground p-4">Loading highlights...</p>;
+    return <p className="neo-box p-4 text-xs font-bold text-muted-foreground">Loading highlights...</p>;
   }
 
   if (highlights.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-1 p-4">
-        <GripHorizontal className="h-6 w-6 opacity-30" />
-        <p className="text-xs">No highlights yet</p>
-        <p className="text-xs">Select text in the document to create one.</p>
+      <div className="neo-empty flex h-full flex-col items-center justify-center gap-1 p-4 text-center text-muted-foreground">
+        <div className="mb-2 grid h-12 w-12 place-items-center rounded-md border-2 border-border bg-accent shadow-neoSm">
+          <GripHorizontal className="h-6 w-6 text-foreground" />
+        </div>
+        <p className="text-xs font-extrabold text-foreground">No highlights yet</p>
+        <p className="text-xs font-bold">Select text in the document to create one.</p>
       </div>
     );
   }
@@ -67,19 +69,19 @@ export default function HighlightList({ fileId, onJumpToHighlight }: HighlightLi
         return (
           <div
             key={highlight.id}
-            className="border rounded-md bg-card overflow-hidden"
+            className="overflow-hidden rounded-md border-2 border-border bg-surface shadow-neoSm"
           >
             <div className="flex items-start gap-2 p-2">
               <div
-                className={cn("h-4 w-4 rounded-full shrink-0 mt-0.5 border", color.bg)}
+                className={cn("mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 border-border", color.bg)}
               />
 
               <div className="flex-1 min-w-0">
-                <p className="text-xs leading-relaxed line-clamp-3">
+                <p className="line-clamp-3 text-xs font-bold leading-relaxed">
                   {highlight.text}
                 </p>
                 {highlight.page != null && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                  <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                     Page {highlight.page}
                   </p>
                 )}
@@ -88,7 +90,7 @@ export default function HighlightList({ fileId, onJumpToHighlight }: HighlightLi
                   <div className="mt-1.5 flex gap-1">
                     <input
                       autoFocus
-                      className="flex-1 text-xs border rounded px-1.5 py-0.5 bg-background"
+                      className="flex-1 rounded border-2 border-border bg-surface px-1.5 py-0.5 text-xs font-bold"
                       value={noteText}
                       onChange={(e) => setNoteText(e.target.value)}
                       onKeyDown={(e) => {
@@ -100,17 +102,19 @@ export default function HighlightList({ fileId, onJumpToHighlight }: HighlightLi
                       }}
                     />
                     <button
-                      className="p-0.5 rounded hover:bg-accent"
+                      className="rounded border-2 border-transparent p-0.5 hover:border-border hover:bg-accent"
                       onClick={() => handleSaveNote(highlight)}
+                      aria-label="Save highlight note"
                     >
                       <Check className="h-3 w-3 text-green-600" />
                     </button>
                     <button
-                      className="p-0.5 rounded hover:bg-accent"
+                      className="rounded border-2 border-transparent p-0.5 hover:border-border hover:bg-accent"
                       onClick={() => {
                         setEditingNote(null);
                         setNoteText("");
                       }}
+                      aria-label="Cancel highlight note edit"
                     >
                       <X className="h-3 w-3 text-muted-foreground" />
                     </button>
@@ -123,18 +127,19 @@ export default function HighlightList({ fileId, onJumpToHighlight }: HighlightLi
               </div>
             </div>
 
-            <div className="flex items-center justify-between px-2 py-1 border-t bg-muted/30">
+            <div className="flex items-center justify-between border-t-2 border-border bg-surface-muted px-2 py-1">
               <div className="flex items-center gap-0.5">
                 {colorOptions.map((c) => (
                   <button
                     key={c.value}
                     onClick={() => handleChangeColor(highlight, c.value)}
                     className={cn(
-                      "h-3 w-3 rounded-full border transition-all",
+                      "h-4 w-4 rounded-full border-2 border-border transition-all",
                       c.bg,
                       highlight.color === c.value && "ring-1 ring-offset-1"
                     )}
                     title={c.value}
+                    aria-label={`Set highlight color to ${c.value}`}
                   />
                 ))}
               </div>
@@ -142,29 +147,32 @@ export default function HighlightList({ fileId, onJumpToHighlight }: HighlightLi
               <div className="flex items-center gap-1">
                 {!editingNote || editingNote !== highlight.id ? (
                   <button
-                    className="p-1 rounded hover:bg-accent"
+                    className="rounded border-2 border-transparent p-1 hover:border-border hover:bg-accent"
                     onClick={() => {
                       setEditingNote(highlight.id);
                       setNoteText(highlight.note || "");
                     }}
                     title="Edit note"
+                    aria-label="Edit highlight note"
                   >
                     <Pencil className="h-3 w-3 text-muted-foreground" />
                   </button>
                 ) : null}
                 {onJumpToHighlight && (
                   <button
-                    className="p-1 rounded hover:bg-accent"
+                    className="rounded border-2 border-transparent p-1 hover:border-border hover:bg-accent"
                     onClick={() => onJumpToHighlight(highlight)}
                     title="Jump to highlight"
+                    aria-label="Jump to highlight"
                   >
                     <GripHorizontal className="h-3 w-3 text-muted-foreground" />
                   </button>
                 )}
                 <button
-                  className="p-1 rounded hover:bg-accent"
+                  className="rounded border-2 border-transparent p-1 hover:border-border hover:bg-accent"
                   onClick={() => handleDelete(highlight)}
                   title="Delete highlight"
+                  aria-label="Delete highlight"
                 >
                   <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
                 </button>

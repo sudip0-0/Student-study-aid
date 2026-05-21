@@ -54,7 +54,7 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
     <div className="flex flex-col h-full max-h-[450px]">
       <div className="flex-1 overflow-auto space-y-3 pr-1">
         {messages.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-4">
+          <p className="neo-empty p-4 text-center text-xs font-bold text-muted-foreground">
             Ask questions about this document.
           </p>
         )}
@@ -62,10 +62,10 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`text-xs leading-relaxed rounded-lg p-2.5 max-w-[90%] ${
+            className={`max-w-[90%] rounded-neoLg border-2 border-border p-2.5 text-xs font-bold leading-relaxed shadow-neoSm ${
               msg.role === "user"
-                ? "bg-primary/10 ml-auto"
-                : "bg-muted mr-auto"
+                ? "ml-auto bg-primary-soft"
+                : "mr-auto bg-surface"
             }`}
           >
             {msg.content}
@@ -73,25 +73,25 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
         ))}
 
         {mutation.isPending && (
-          <div className="bg-muted rounded-lg p-2.5 max-w-[90%] mr-auto">
+          <div className="mr-auto max-w-[90%] rounded-neoLg border-2 border-border bg-surface p-2.5 shadow-neoSm">
             <Loader2 className="h-3 w-3 animate-spin" />
           </div>
         )}
 
         {error && (
-          <p className="text-xs text-destructive text-center">{error}</p>
+          <p className="rounded-md border-2 border-border bg-danger-soft px-3 py-2 text-center text-xs font-bold text-foreground">{error}</p>
         )}
 
         <div ref={bottomRef} />
       </div>
 
-      <div className="flex items-center gap-1.5 pt-2 border-t mt-2">
+      <div className="mt-2 flex items-center gap-1.5 border-t-2 border-border pt-2">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask about this document..."
-          className="flex-1 h-8 rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+          className="min-h-10 flex-1 rounded-md border-2 border-border bg-surface px-2 text-xs font-bold shadow-neoSm focus:outline-none"
           disabled={mutation.isPending}
         />
         <Button
@@ -99,6 +99,7 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
           onClick={handleSend}
           disabled={mutation.isPending || !input.trim()}
           className="h-8 w-8 p-0"
+          aria-label="Send chat message"
         >
           <Send className="h-3 w-3" />
         </Button>

@@ -11,7 +11,7 @@ interface BreadcrumbProps {
 export default function Breadcrumb({ activeFolderId, folders, onNavigate }: BreadcrumbProps) {
   if (!activeFolderId) {
     return (
-      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+      <div className="flex min-h-10 items-center gap-1.5 rounded-full border-2 border-border bg-surface px-3 text-sm font-extrabold text-muted-foreground shadow-neoSm">
         <Folder className="h-3.5 w-3.5" />
         <span>All Files</span>
       </div>
@@ -31,7 +31,7 @@ export default function Breadcrumb({ activeFolderId, folders, onNavigate }: Brea
   }
 
   return (
-    <div className="flex items-center gap-1 text-sm">
+    <div className="flex min-h-10 items-center gap-1 overflow-x-auto rounded-full border-2 border-border bg-surface px-3 text-sm font-bold shadow-neoSm">
       <button
         onClick={() => onNavigate(null)}
         className={cn(

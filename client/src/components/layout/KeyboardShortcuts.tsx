@@ -33,12 +33,12 @@ export default function KeyboardShortcuts({ onClose }: KeyboardShortcutsProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div
-        className="bg-card border rounded-lg p-6 w-full max-w-sm shadow-xl"
+        className="neo-box w-full max-w-sm p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Keyboard Shortcuts</h3>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-accent">
+          <h3 className="text-lg font-extrabold">Keyboard Shortcuts</h3>
+          <button onClick={onClose} className="rounded-md border-2 border-transparent p-1 hover:border-border hover:bg-accent" aria-label="Close keyboard shortcuts">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -46,10 +46,10 @@ export default function KeyboardShortcuts({ onClose }: KeyboardShortcutsProps) {
           {SHORTCUTS.map((shortcut) => (
             <div
               key={shortcut.keys}
-              className="flex items-center justify-between text-sm"
+              className="flex items-center justify-between gap-4 rounded-md border-2 border-border bg-surface-muted px-3 py-2 text-sm"
             >
-              <span className="text-muted-foreground">{shortcut.description}</span>
-              <kbd className="px-2 py-0.5 text-xs bg-muted rounded border font-mono">
+              <span className="font-bold text-muted-foreground">{shortcut.description}</span>
+              <kbd className="rounded border-2 border-border bg-surface px-2 py-0.5 font-mono text-xs font-extrabold shadow-neoSm">
                 {shortcut.keys}
               </kbd>
             </div>

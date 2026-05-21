@@ -129,6 +129,7 @@ function FolderNode({
             onClick={(e) => { e.stopPropagation(); onUpload(folder.id); }}
             className="p-0.5 rounded hover:bg-background"
             title="Upload file here"
+            aria-label={`Upload file to ${folder.name}`}
           >
             <FilePlus className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
@@ -136,6 +137,7 @@ function FolderNode({
             onClick={(e) => { e.stopPropagation(); onContextMenu(e, folder.id); }}
             className="p-0.5 rounded hover:bg-background"
             title="More actions"
+            aria-label={`Open actions for ${folder.name}`}
           >
             <FolderPlus className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
@@ -307,19 +309,20 @@ export default function FolderTree({ activeFolderId, onSelect, onUploadToFolder 
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Files</span>
         <div className="flex gap-0.5">
           <Button
-            variant="ghost" size="icon" className="h-6 w-6"
+            variant="ghost" size="icon" className="h-7 w-7"
             onClick={async () => {
               const file = await createBlankFile.mutateAsync({ name: "Untitled Note", folderId: activeFolderId });
               navigate(`/study/${file.id}`);
             }}
             title="New note"
+            aria-label="Create new note"
           >
             <NotebookPen className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onUploadToFolder(null)} title="Upload file">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onUploadToFolder(null)} title="Upload file" aria-label="Upload file">
             <FilePlus className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setCreating(null)} title="New folder">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCreating(null)} title="New folder" aria-label="Create new folder">
             <FolderPlus className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -446,7 +449,7 @@ export default function FolderTree({ activeFolderId, onSelect, onUploadToFolder 
       {contextMenu && (
         <div
           ref={contextRef}
-          className="fixed z-50 bg-popover border rounded-md shadow-md py-1 min-w-[140px] text-sm"
+          className="fixed z-50 min-w-[160px] rounded-md border-2 border-border bg-surface py-1 text-sm shadow-neoMd"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <button
@@ -495,7 +498,7 @@ export default function FolderTree({ activeFolderId, onSelect, onUploadToFolder 
 
       {fileContextMenu && (
         <div
-          className="fixed z-50 bg-popover border rounded-md shadow-md py-1 min-w-[120px] text-sm"
+          className="fixed z-50 min-w-[140px] rounded-md border-2 border-border bg-surface py-1 text-sm shadow-neoMd"
           style={{ left: fileContextMenu.x, top: fileContextMenu.y }}
         >
           <button

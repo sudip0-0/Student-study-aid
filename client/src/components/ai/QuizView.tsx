@@ -63,16 +63,16 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
           <button onClick={backToList} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
             <ChevronLeft className="h-3 w-3" /> Back
           </button>
-          <div className="text-center space-y-2 py-4">
-            <p className="text-2xl font-bold">{score}%</p>
+          <div className="neo-box space-y-2 py-4 text-center">
+            <p className="font-mono text-2xl font-black">{score}%</p>
             <p className="text-sm text-muted-foreground">
               {correctCount} of {questions.length} correct
             </p>
           </div>
           <div className="space-y-2 max-h-[300px] overflow-auto">
             {questions.map((q, i) => (
-              <div key={i} className={`text-xs p-2 rounded border ${answers[i] === q.answer ? "border-green-500/50 bg-green-50 dark:bg-green-950/30" : "border-red-500/50 bg-red-50 dark:bg-red-950/30"}`}>
-                <p className="font-medium">{i + 1}. {q.question}</p>
+              <div key={i} className={`rounded-md border-2 border-border p-2 text-xs ${answers[i] === q.answer ? "bg-success-soft" : "bg-danger-soft"}`}>
+                <p className="font-bold">{i + 1}. {q.question}</p>
                 <p className="text-muted-foreground mt-0.5">
                   Your answer: {answers[i] ? q.options[answers[i].charCodeAt(0) - 65] : "—"}
                   {answers[i] !== q.answer && <> · Correct: {q.options[q.answer.charCodeAt(0) - 65]}</>}
@@ -123,7 +123,7 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
         </div>
 
         <div className="flex-1 space-y-3">
-          <p className="text-sm font-medium leading-relaxed">{q.question}</p>
+          <p className="rounded-md border-2 border-border bg-surface p-3 text-sm font-extrabold leading-relaxed shadow-neoSm">{q.question}</p>
 
           <div className="space-y-1.5">
             {q.options.map((opt, oIdx) => {
@@ -134,10 +134,10 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
                 <button
                   key={oIdx}
                   onClick={() => setAnswers((prev) => ({ ...prev, [currentIdx]: letter }))}
-                  className={`w-full text-left text-xs px-3 py-2.5 rounded-lg border transition-colors ${
+                  className={`min-h-11 w-full rounded-md border-2 px-3 py-2.5 text-left text-xs font-bold transition-colors ${
                     isSelected
-                      ? "border-primary bg-primary/10 font-medium"
-                      : "border-border hover:bg-muted"
+                      ? "border-border bg-primary-soft shadow-neoSm"
+                      : "border-border bg-surface hover:bg-accent-soft"
                   }`}
                 >
                   {letter}.  {opt}
@@ -147,11 +147,11 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
           </div>
 
           {showHint && q.explanation && (
-            <p className="text-[11px] text-muted-foreground bg-muted p-2 rounded">{q.explanation}</p>
+            <p className="rounded-md border-2 border-border bg-surface-muted p-2 text-[11px] font-bold text-muted-foreground">{q.explanation}</p>
           )}
         </div>
 
-        <div className="flex items-center pt-3 mt-auto border-t">
+        <div className="mt-auto flex items-center border-t-2 border-border pt-3">
           {q.explanation ? (
             <button
               onClick={() => setShowHint(!showHint)}
@@ -172,7 +172,7 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
         <select
           value={count}
           onChange={(e) => setCount(Number(e.target.value))}
-          className="h-8 rounded-md border bg-background px-2 text-xs"
+          className="min-h-10 rounded-md border-2 border-border bg-surface px-2 font-mono text-xs font-bold shadow-neoSm"
         >
           <option value={3}>3 Q</option>
           <option value={5}>5 Q</option>
@@ -197,15 +197,15 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
 
       {savedQuizzes.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">Saved Quizzes</p>
+        <p className="font-mono text-xs font-bold text-muted-foreground">Saved Quizzes</p>
           {savedQuizzes.map((q) => (
             <div
               key={q.id}
-              className="flex items-center justify-between border rounded-md px-2.5 py-2 hover:bg-muted/50 cursor-pointer"
+              className="flex cursor-pointer items-center justify-between rounded-md border-2 border-border bg-surface px-2.5 py-2 shadow-neoSm hover:bg-accent-soft"
               onClick={() => openQuiz(q)}
             >
               <div className="min-w-0">
-                <p className="text-xs font-medium truncate">{q.title}</p>
+                <p className="truncate text-xs font-bold">{q.title}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {(q.questions as QuizQuestion[]).length} questions
                   {q.score !== null && ` · Last: ${q.score}%`}
@@ -214,6 +214,7 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
               <button
                 onClick={(e) => { e.stopPropagation(); if (confirm("Delete this quiz?")) deleteQuiz.mutate(q.id); }}
                 className="text-muted-foreground hover:text-destructive p-1 shrink-0"
+                aria-label={`Delete ${q.title}`}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -223,7 +224,7 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
       )}
 
       {savedQuizzes.length === 0 && !mutation.isPending && !error && (
-        <p className="text-xs text-muted-foreground">
+        <p className="neo-empty p-4 text-center text-xs font-bold text-muted-foreground">
           Generate a multiple-choice quiz from this document.
         </p>
       )}

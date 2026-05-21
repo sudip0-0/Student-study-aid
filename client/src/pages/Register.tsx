@@ -30,15 +30,15 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-sm">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-grid px-4 py-10">
+      <Card className="w-full max-w-sm border-[3px] shadow-neoLg">
         <CardHeader>
-          <CardTitle className="text-2xl">Create account</CardTitle>
+          <CardTitle className="text-3xl">Create account</CardTitle>
           <CardDescription>Get started with Lumio</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="rounded-md border-2 border-border bg-danger-soft px-3 py-2 text-sm font-bold text-foreground">{error}</p>}
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} required />

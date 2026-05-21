@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Plus, Grid3X3, List, Search } from "lucide-react";
+import { Plus, Grid3X3, List, Search, FolderOpen, FileText } from "lucide-react";
 import FileGrid from "../components/files/FileGrid";
 import FileList from "../components/files/FileList";
 import FileUploader from "../components/files/FileUploader";
@@ -70,48 +70,74 @@ export default function Dashboard() {
     return result;
   }, [files, searchQuery, typeFilter, sortOption]);
 
+  const activeFolder = folders.find((folder) => folder.id === activeFolderId);
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <Breadcrumb
-          activeFolderId={activeFolderId}
-          folders={folders}
-          onNavigate={setActiveFolderId}
-        />
-        <div className="flex items-center gap-2">
-          <div className="flex border rounded-md">
+    <div className="mx-auto max-w-7xl space-y-5">
+      <section className="app-panel overflow-hidden">
+        <div className="grid gap-4 p-4 md:grid-cols-[1fr_auto] md:items-end md:p-5">
+          <div className="min-w-0 space-y-2">
+            <Breadcrumb
+              activeFolderId={activeFolderId}
+              folders={folders}
+              onNavigate={setActiveFolderId}
+            />
+            <div>
+              <p className="font-mono text-[11px] font-extrabold uppercase text-muted-foreground">
+                {activeFolder ? "Folder" : "Library"}
+              </p>
+              <h1 className="app-section-title truncate text-3xl sm:text-4xl">
+                {activeFolder?.name ?? "All study files"}
+              </h1>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 md:justify-end">
+            <span className="status-pill bg-accent-soft">
+              <FileText className="h-3.5 w-3.5" />
+              {filteredFiles.length} file{filteredFiles.length !== 1 ? "s" : ""}
+            </span>
+            <span className="status-pill bg-primary-soft">
+              <FolderOpen className="h-3.5 w-3.5" />
+              {folders.length} folder{folders.length !== 1 ? "s" : ""}
+            </span>
+            <Button size="sm" onClick={() => setShowUploader(true)} className="ml-0 md:ml-2">
+              <Plus className="h-4 w-4 mr-1" />
+              Upload
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <div className="app-panel flex flex-col gap-3 p-3 md:flex-row md:items-center">
+        <div className="relative flex-1 md:max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search files in this view..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="min-h-10 pl-8 text-sm shadow-none"
+          />
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center md:ml-auto">
+          <FilterTabs active={typeFilter} onChange={setTypeFilter} />
+          <SortDropdown value={sortOption} onChange={setSortOption} />
+          <div className="flex w-fit rounded-md border-2 border-border bg-surface p-1 shadow-neoSm">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-1.5 ${viewMode === "grid" ? "bg-accent" : "hover:bg-accent/50"}`}
+              className={`min-h-9 min-w-9 rounded-sm p-1.5 transition-colors ${viewMode === "grid" ? "bg-accent" : "hover:bg-accent-soft"}`}
+              aria-label="Grid view"
             >
               <Grid3X3 className="h-4 w-4" />
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`p-1.5 ${viewMode === "list" ? "bg-accent" : "hover:bg-accent/50"}`}
+              className={`min-h-9 min-w-9 rounded-sm p-1.5 transition-colors ${viewMode === "list" ? "bg-accent" : "hover:bg-accent-soft"}`}
+              aria-label="List view"
             >
               <List className="h-4 w-4" />
             </button>
           </div>
-          <Button size="sm" onClick={() => setShowUploader(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Upload
-          </Button>
         </div>
-      </div>
-
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search files..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 h-8 text-sm"
-          />
-        </div>
-        <FilterTabs active={typeFilter} onChange={setTypeFilter} />
-        <SortDropdown value={sortOption} onChange={setSortOption} />
       </div>
 
       {viewMode === "grid" ? (
@@ -125,9 +151,9 @@ export default function Dashboard() {
       )}
 
       {renamingFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setRenamingFile(null)}>
-          <div className="bg-card border rounded-lg p-6 w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-3">Rename File</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setRenamingFile(null)}>
+          <div className="neo-box w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="rename-file-title">
+            <h3 id="rename-file-title" className="mb-3 text-lg font-extrabold">Rename File</h3>
             <Input
               autoFocus
               value={newName}

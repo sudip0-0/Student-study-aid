@@ -136,8 +136,8 @@ Use a neutral foundation with strong accent colors.
   --secondary-hover: #1765D8;
   --secondary-soft: #DDEBFF;
 
-  --accent: #D7FF3F;
-  --accent-soft: #F0FFC2;
+  --accent: #623927;
+  --accent-soft: #3D4724;
 
   --success: #19A35B;
   --success-soft: #D9F8E7;

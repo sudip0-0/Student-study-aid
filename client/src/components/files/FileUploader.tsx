@@ -83,11 +83,17 @@ export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
   }, [uploadFile]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-card border rounded-lg p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div
+        className="neo-box w-full max-w-md p-6"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="upload-file-title"
+      >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Upload File</h3>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-accent">
+          <h3 id="upload-file-title" className="text-lg font-extrabold">Upload File</h3>
+          <button onClick={onClose} className="rounded-md border-2 border-transparent p-1 hover:border-border hover:bg-accent" aria-label="Close upload dialog">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -97,18 +103,25 @@ export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
           className={cn(
-            "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-            dragging ? "border-primary bg-primary/5" : "border-muted-foreground/25",
+            "rounded-neoLg border-[3px] border-dashed p-8 text-center transition-colors",
+            dragging ? "border-border bg-primary-soft" : "border-border bg-surface",
             uploading && "pointer-events-none opacity-50"
           )}
         >
-          <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground mb-1">
+          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-md border-2 border-border bg-accent shadow-neoSm">
+            <Upload className="h-6 w-6" />
+          </div>
+          <p className="mb-1 text-sm font-extrabold">
             {uploading ? progress : "Drag and drop a file here"}
           </p>
+          {uploading && (
+            <div className="mx-auto my-3 h-3 max-w-56 overflow-hidden rounded-full border-2 border-border bg-surface-muted">
+              <div className="h-full w-2/3 animate-pulse bg-primary" />
+            </div>
+          )}
           <p className="text-xs text-muted-foreground mb-3">or</p>
           <label className="inline-block cursor-pointer">
-            <span className="text-sm text-primary hover:underline">Browse files</span>
+            <span className="inline-flex min-h-10 items-center rounded-md border-2 border-border bg-primary px-4 py-2 text-sm font-extrabold shadow-neoSm transition-transform hover:translate-x-0.5 hover:translate-y-0.5">Browse files</span>
             <input
               type="file"
               className="hidden"
@@ -121,7 +134,7 @@ export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
         </div>
 
         {error && (
-          <p className="mt-3 text-sm text-destructive">{error}</p>
+          <p className="mt-3 rounded-md border-2 border-border bg-danger-soft px-3 py-2 text-sm font-bold text-foreground">{error}</p>
         )}
       </div>
     </div>

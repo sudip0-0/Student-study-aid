@@ -29,15 +29,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-sm">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-grid px-4 py-10">
+      <Card className="w-full max-w-sm border-[3px] shadow-neoLg">
         <CardHeader>
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
+          <CardTitle className="text-3xl">Welcome back</CardTitle>
           <CardDescription>Sign in to your Lumio account</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="rounded-md border-2 border-border bg-danger-soft px-3 py-2 text-sm font-bold text-foreground">{error}</p>}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />

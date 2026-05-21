@@ -41,7 +41,7 @@ export default function Study() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-sm text-muted-foreground">Loading document...</p>
+        <p className="neo-box px-5 py-3 text-sm font-bold text-muted-foreground">Loading document...</p>
       </div>
     );
   }
@@ -63,11 +63,11 @@ export default function Study() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center gap-4 px-4 py-2 border-b shrink-0">
-        <Link to="/" className="p-1 rounded hover:bg-accent">
+      <div className="flex shrink-0 items-center gap-3 border-b-2 border-border bg-surface px-3 py-2 sm:px-4">
+        <Link to="/" className="rounded-md border-2 border-transparent p-1 hover:border-border hover:bg-accent" aria-label="Back to dashboard">
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {file.type === "pdf" ? (
             <FileText className="h-4 w-4 text-red-500 shrink-0" />
           ) : file.type === "docx" ? (
@@ -75,12 +75,15 @@ export default function Study() {
           ) : (
             <FileText className="h-4 w-4 text-green-500 shrink-0" />
           )}
-          <span className="text-sm font-medium truncate">{file.name}</span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-extrabold">{file.name}</p>
+            <p className="font-mono text-[10px] font-bold uppercase text-muted-foreground">{file.type}</p>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        <div className="flex-[3] min-w-0 border-r overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+        <div className="min-h-[45dvh] min-w-0 flex-[3] overflow-hidden border-b-2 border-border lg:min-h-0 lg:border-b-0 lg:border-r-2">
           {file.type === "pdf" ? (
             <PDFViewer
               fileId={file.id}
@@ -91,7 +94,7 @@ export default function Study() {
           ) : isBlank ? (
             <div className="h-full flex flex-col p-4">
               <textarea
-                className="flex-1 w-full resize-none bg-transparent text-sm leading-relaxed focus:outline-none placeholder:text-muted-foreground"
+                className="flex-1 w-full resize-none rounded-neoLg border-2 border-border bg-surface p-4 text-sm font-medium leading-relaxed shadow-neoSm focus:outline-none placeholder:text-muted-foreground"
                 placeholder="Start typing your notes..."
                 value={noteText}
                 onChange={(e) => handleNoteChange(e.target.value)}
@@ -110,18 +113,19 @@ export default function Study() {
           )}
         </div>
 
-        <div className="flex-[2] min-w-0 flex flex-col bg-card overflow-hidden">
-          <div className="flex border-b shrink-0">
+        <div className="flex min-w-0 flex-[2] flex-col overflow-hidden bg-surface">
+          <div className="flex shrink-0 gap-1 overflow-x-auto border-b-2 border-border bg-surface-muted p-1">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setRightPanelTab(tab.key)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium transition-colors border-b-2",
+                  "flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md border-2 px-2 py-2 text-xs font-extrabold transition-colors",
                   rightPanelTab === tab.key
-                    ? "border-primary text-primary"
+                    ? "border-border bg-accent text-foreground shadow-neoSm"
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
+                aria-pressed={rightPanelTab === tab.key}
               >
                 <tab.icon className="h-3.5 w-3.5" />
                 {tab.label}

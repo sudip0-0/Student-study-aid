@@ -20,9 +20,9 @@ const typeIcons: Record<string, typeof FileText> = {
 };
 
 const typeColors: Record<string, string> = {
-  pdf: "text-red-500",
-  docx: "text-blue-500",
-  txt: "text-green-500",
+  pdf: "text-danger",
+  docx: "text-secondary",
+  txt: "text-success",
 };
 
 function formatSize(bytes: number): string {
@@ -40,14 +40,14 @@ export default function FileList({ files, isLoading, folderId, onRename }: FileL
 
   if (isLoading) {
     return (
-      <div className="border rounded-lg overflow-hidden">
+      <div className="overflow-hidden rounded-neoLg border-2 border-border bg-surface shadow-neoSm">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="text-left px-4 py-2 font-medium text-muted-foreground">Name</th>
-              <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden sm:table-cell">Type</th>
-              <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden md:table-cell">Size</th>
-              <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden lg:table-cell">Date</th>
+            <tr className="border-b-2 border-border bg-foreground text-surface">
+              <th className="px-4 py-2 text-left font-mono text-xs font-extrabold uppercase">Name</th>
+              <th className="hidden px-4 py-2 text-left font-mono text-xs font-extrabold uppercase sm:table-cell">Type</th>
+              <th className="hidden px-4 py-2 text-left font-mono text-xs font-extrabold uppercase md:table-cell">Size</th>
+              <th className="hidden px-4 py-2 text-left font-mono text-xs font-extrabold uppercase lg:table-cell">Date</th>
               <th className="w-10 px-2 py-2" />
             </tr>
           </thead>
@@ -69,22 +69,101 @@ export default function FileList({ files, isLoading, folderId, onRename }: FileL
 
   if (files.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
-        <p className="text-sm">No files in this folder</p>
-        <p className="text-xs mt-1">Upload a file to get started</p>
+      <div className="neo-empty flex flex-col items-center justify-center p-10 text-center">
+        <p className="text-base font-extrabold text-foreground">No files in this folder</p>
+        <p className="mt-1 text-sm text-muted-foreground">Upload a file to get started</p>
       </div>
     );
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="overflow-hidden rounded-neoLg border-2 border-border bg-surface shadow-neoSm">
+      <div className="divide-y-2 divide-border sm:hidden">
+        {files.map((file) => {
+          const Icon = typeIcons[file.type] || File;
+          const menuOpen = openMenu === file.id;
+          return (
+            <div key={file.id} className="p-3">
+              <div className="flex items-start gap-3">
+                <button
+                  onClick={() => navigate(`/study/${file.id}`)}
+                  className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                >
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border-2 border-border bg-accent-soft shadow-neoSm">
+                    <Icon className={cn("h-5 w-5", typeColors[file.type] || "text-muted-foreground")} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-extrabold">{file.name}</span>
+                    <span className="mt-1 block font-mono text-[11px] font-bold uppercase text-muted-foreground">
+                      {file.type} - {formatSize(file.size)}
+                    </span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => setOpenMenu(menuOpen ? null : file.id)}
+                  className="rounded-md border-2 border-border bg-surface p-2 shadow-neoSm hover:bg-accent"
+                  aria-label={`Open actions for ${file.name}`}
+                  aria-expanded={menuOpen}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+              </div>
+              {menuOpen && (
+                <div className="mt-3 grid gap-2 rounded-md border-2 border-border bg-surface-muted p-2">
+                  <button
+                    className="flex min-h-10 items-center gap-2 rounded-md px-3 text-left text-sm font-bold hover:bg-accent"
+                    onClick={() => {
+                      setOpenMenu(null);
+                      onRename(file);
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Rename
+                  </button>
+                  {folders.filter((f) => f.id !== folderId).map((f) => (
+                    <button
+                      key={f.id}
+                      className="flex min-h-10 items-center gap-2 rounded-md px-3 text-left text-sm font-bold hover:bg-accent"
+                      onClick={() => {
+                        updateFile.mutate({ id: file.id, folderId: f.id });
+                        setOpenMenu(null);
+                      }}
+                    >
+                      <FolderInput className="h-3.5 w-3.5" /> {f.name}
+                    </button>
+                  ))}
+                  {file.folderId && (
+                    <button
+                      className="flex min-h-10 items-center gap-2 rounded-md px-3 text-left text-sm font-bold text-muted-foreground hover:bg-accent"
+                      onClick={() => {
+                        updateFile.mutate({ id: file.id, folderId: null });
+                        setOpenMenu(null);
+                      }}
+                    >
+                      <FolderInput className="h-3.5 w-3.5" /> Move to root
+                    </button>
+                  )}
+                  <button
+                    className="flex min-h-10 items-center gap-2 rounded-md px-3 text-left text-sm font-bold text-destructive hover:bg-danger-soft"
+                    onClick={() => {
+                      setOpenMenu(null);
+                      if (confirm("Delete this file?")) deleteFile.mutate(file.id);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <table className="hidden w-full text-sm sm:table">
         <thead>
-          <tr className="border-b bg-muted/50">
-            <th className="text-left px-4 py-2 font-medium text-muted-foreground">Name</th>
-            <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden sm:table-cell">Type</th>
-            <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden md:table-cell">Size</th>
-            <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden lg:table-cell">Date</th>
+          <tr className="border-b-2 border-border bg-foreground text-surface">
+            <th className="px-4 py-2 text-left font-mono text-xs font-extrabold uppercase">Name</th>
+            <th className="hidden px-4 py-2 text-left font-mono text-xs font-extrabold uppercase sm:table-cell">Type</th>
+            <th className="hidden px-4 py-2 text-left font-mono text-xs font-extrabold uppercase md:table-cell">Size</th>
+            <th className="hidden px-4 py-2 text-left font-mono text-xs font-extrabold uppercase lg:table-cell">Date</th>
             <th className="w-10 px-2 py-2" />
           </tr>
         </thead>
@@ -92,46 +171,47 @@ export default function FileList({ files, isLoading, folderId, onRename }: FileL
           {files.map((file) => {
             const Icon = typeIcons[file.type] || File;
             return (
-              <tr key={file.id} className="border-b hover:bg-accent/50 transition-colors">
+              <tr key={file.id} className="border-b-2 border-border transition-colors hover:bg-accent-soft">
                 <td className="px-4 py-3">
                   <button
                     onClick={() => navigate(`/study/${file.id}`)}
-                    className="flex items-center gap-2 hover:text-primary transition-colors"
+                    className="flex items-center gap-2 font-bold transition-colors hover:text-primary"
                   >
                     <Icon className={cn("h-4 w-4 shrink-0", typeColors[file.type] || "text-muted-foreground")} />
                     <span className="font-medium truncate max-w-[200px]">{file.name}</span>
                   </button>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground uppercase hidden sm:table-cell">{file.type}</td>
-                <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{formatSize(file.size)}</td>
-                <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
+                <td className="hidden px-4 py-3 font-mono text-xs uppercase text-muted-foreground sm:table-cell">{file.type}</td>
+                <td className="hidden px-4 py-3 font-mono text-xs text-muted-foreground md:table-cell">{formatSize(file.size)}</td>
+                <td className="hidden px-4 py-3 font-mono text-xs text-muted-foreground lg:table-cell">
                   {new Date(file.createdAt).toLocaleDateString()}
                 </td>
                 <td className="px-2 py-3 relative">
                   <button
                     onClick={() => setOpenMenu(openMenu === file.id ? null : file.id)}
-                    className="p-1 rounded-md hover:bg-accent"
+                    className="rounded-md border-2 border-transparent p-1 hover:border-border hover:bg-accent"
+                    aria-label={`Open actions for ${file.name}`}
                   >
                     <MoreVertical className="h-4 w-4" />
                   </button>
                   {openMenu === file.id && (
-                    <div className="absolute right-0 top-full mt-1 z-10 bg-card border rounded-md shadow-lg py-1 w-40" onClick={() => setOpenMenu(null)}>
+                    <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-md border-2 border-border bg-surface py-1 shadow-neoMd" onClick={() => setOpenMenu(null)}>
                       <button
-                        className="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-accent"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold hover:bg-accent"
                         onClick={() => onRename(file)}
                       >
                         <Pencil className="h-3.5 w-3.5" /> Rename
                       </button>
                       {folders.length > 0 && (
                         <div className="relative group">
-                          <button className="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-accent">
+                          <button className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold hover:bg-accent">
                             <FolderInput className="h-3.5 w-3.5" /> Move to
                           </button>
-                          <div className="absolute left-full top-0 ml-1 bg-card border rounded-md shadow-lg py-1 w-36 hidden group-hover:block">
+                          <div className="absolute left-full top-0 ml-1 hidden w-36 rounded-md border-2 border-border bg-surface py-1 shadow-neoMd group-hover:block">
                             {folders.filter(f => f.id !== folderId).map((f) => (
                               <button
                                 key={f.id}
-                                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent truncate"
+                                className="w-full truncate px-3 py-2 text-left text-sm font-bold hover:bg-accent"
                                 onClick={() => updateFile.mutate({ id: file.id, folderId: f.id })}
                               >
                                 {f.name}
@@ -139,7 +219,7 @@ export default function FileList({ files, isLoading, folderId, onRename }: FileL
                             ))}
                             {file.folderId && (
                               <button
-                                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-muted-foreground"
+                                className="w-full px-3 py-2 text-left text-sm font-bold text-muted-foreground hover:bg-accent"
                                 onClick={() => updateFile.mutate({ id: file.id, folderId: null })}
                               >
                                 Root
@@ -149,7 +229,7 @@ export default function FileList({ files, isLoading, folderId, onRename }: FileL
                         </div>
                       )}
                       <button
-                        className="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-accent text-destructive"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold text-destructive hover:bg-danger-soft"
                         onClick={() => { if (confirm("Delete this file?")) deleteFile.mutate(file.id); }}
                       >
                         <Trash2 className="h-3.5 w-3.5" /> Delete

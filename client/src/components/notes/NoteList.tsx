@@ -15,7 +15,7 @@ export default function NoteList({ fileId }: NoteListProps) {
   const [showCreate, setShowCreate] = useState(false);
 
   if (isLoading) {
-    return <p className="text-xs text-muted-foreground p-4">Loading notes...</p>;
+    return <p className="neo-box p-4 text-xs font-bold text-muted-foreground">Loading notes...</p>;
   }
 
   if (selectedNote) {
@@ -39,9 +39,11 @@ export default function NoteList({ fileId }: NoteListProps) {
 
   if (notes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3 p-4">
-        <StickyNote className="h-8 w-8 opacity-30" />
-        <p className="text-xs">No notes yet for this document.</p>
+      <div className="neo-empty flex h-full flex-col items-center justify-center gap-3 p-4 text-center text-muted-foreground">
+        <div className="grid h-12 w-12 place-items-center rounded-md border-2 border-border bg-accent shadow-neoSm">
+          <StickyNote className="h-6 w-6 text-foreground" />
+        </div>
+        <p className="text-xs font-bold">No notes yet for this document.</p>
         <Button size="sm" variant="outline" onClick={() => setShowCreate(true)}>
           <Plus className="h-3.5 w-3.5 mr-1" />
           Create Note
@@ -53,7 +55,7 @@ export default function NoteList({ fileId }: NoteListProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-2 shrink-0">
-        <p className="text-xs text-muted-foreground">
+        <p className="font-mono text-xs font-bold text-muted-foreground">
           {notes.length} note{notes.length !== 1 ? "s" : ""}
         </p>
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowCreate(true)}>
@@ -64,15 +66,15 @@ export default function NoteList({ fileId }: NoteListProps) {
 
       <div className="flex-1 overflow-auto space-y-2">
         {notes.map((note) => (
-          <div
+          <button
             key={note.id}
-            className="border rounded-md p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+            className="w-full rounded-md border-2 border-border bg-surface p-3 text-left shadow-neoSm transition-colors hover:bg-accent-soft"
             onClick={() => setSelectedNote(note)}
           >
-            <p className="text-xs line-clamp-3 whitespace-pre-wrap">
+            <p className="line-clamp-3 whitespace-pre-wrap text-xs font-bold">
               {note.content}
             </p>
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="mt-1 font-mono text-[10px] text-muted-foreground">
               {new Date(note.updatedAt || note.createdAt).toLocaleDateString(undefined, {
                 month: "short",
                 day: "numeric",
@@ -80,7 +82,7 @@ export default function NoteList({ fileId }: NoteListProps) {
                 minute: "2-digit",
               })}
             </p>
-          </div>
+          </button>
         ))}
       </div>
     </div>

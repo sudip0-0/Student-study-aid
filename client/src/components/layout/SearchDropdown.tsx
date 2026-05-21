@@ -26,7 +26,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
   const hasResults = data && (data.files.length > 0 || data.notes.length > 0);
 
   return (
-    <div className="absolute top-full mt-1 left-0 right-0 z-50 bg-card border rounded-lg shadow-lg max-h-80 overflow-auto">
+    <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-80 overflow-auto rounded-neoLg border-2 border-border bg-surface shadow-neoMd">
       {isLoading && (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -34,7 +34,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
       )}
 
       {!isLoading && !hasResults && (
-        <p className="text-xs text-muted-foreground text-center py-6">
+        <p className="py-6 text-center text-xs font-bold text-muted-foreground">
           No results found.
         </p>
       )}
@@ -44,7 +44,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
           key={file.id}
           to={`/study/${file.id}`}
           onClick={onClose}
-          className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+          className="flex items-center gap-2 border-b-2 border-border px-3 py-2 text-sm font-bold transition-colors hover:bg-accent"
         >
           <FileText className={`h-3.5 w-3.5 ${
             file.type === "pdf" ? "text-red-500" : file.type === "docx" ? "text-blue-500" : "text-green-500"
@@ -59,7 +59,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
           key={note.id}
           to={`/study/${note.fileId}`}
           onClick={onClose}
-          className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+          className="flex items-center gap-2 border-b-2 border-border px-3 py-2 text-sm font-bold transition-colors hover:bg-accent"
         >
           <StickyNote className="h-3.5 w-3.5 text-yellow-500" />
           <span className="truncate text-muted-foreground">
