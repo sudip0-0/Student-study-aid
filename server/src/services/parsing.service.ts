@@ -26,6 +26,13 @@ export async function extractDocxText(filePath: string): Promise<string> {
   return stripExcessWhitespace(result.value);
 }
 
+export async function extractDocxHtml(filePath: string): Promise<string> {
+  const mammoth = await import("mammoth");
+  const buffer = fs.readFileSync(filePath);
+  const result = await mammoth.convertToHtml({ buffer });
+  return result.value.trim();
+}
+
 export async function extractTxtText(filePath: string): Promise<string> {
   const text = fs.readFileSync(filePath, "utf-8");
   return stripExcessWhitespace(text);
@@ -35,7 +42,11 @@ function stripExcessWhitespace(text: string): string {
   return text.replace(/\n{3,}/g, "\n\n").replace(/[ \t]{3,}/g, "  ").trim();
 }
 
-export async function parseFile(fileType: string, url: string): Promise<string | null> {
+async function withDownloadedFile(
+  fileType: string,
+  url: string,
+  extract: (tmpPath: string) => Promise<string>
+): Promise<string | null> {
   const ext = fileType === "pdf" ? ".pdf" : fileType === "docx" ? ".docx" : ".txt";
   const tmpPath = path.join(process.cwd(), "tmp", `${crypto.randomUUID()}${ext}`);
 
@@ -43,14 +54,29 @@ export async function parseFile(fileType: string, url: string): Promise<string |
 
   try {
     await downloadFile(url, tmpPath);
-
-    if (fileType === "pdf") return await extractPdfText(tmpPath);
-    if (fileType === "docx") return await extractDocxText(tmpPath);
-    return await extractTxtText(tmpPath);
+    return await extract(tmpPath);
   } catch (err) {
-    console.error("Text extraction failed:", err);
+    console.error("File parsing failed:", err);
     return null;
   } finally {
-    try { fs.unlinkSync(tmpPath); } catch {}
+    try {
+      fs.unlinkSync(tmpPath);
+    } catch {
+      /* ignore */
+    }
   }
+}
+
+export async function parseFile(fileType: string, url: string): Promise<string | null> {
+  if (fileType === "pdf") {
+    return withDownloadedFile(fileType, url, extractPdfText);
+  }
+  if (fileType === "docx") {
+    return withDownloadedFile(fileType, url, extractDocxText);
+  }
+  return withDownloadedFile(fileType, url, extractTxtText);
+}
+
+export async function parseDocxHtml(url: string): Promise<string | null> {
+  return withDownloadedFile("docx", url, extractDocxHtml);
 }

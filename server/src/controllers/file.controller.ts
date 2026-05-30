@@ -7,7 +7,7 @@ import {
   updateFile,
   deleteFileRecord,
 } from "../services/file.service";
-import { parseFile } from "../services/parsing.service";
+import { parseFile, parseDocxHtml } from "../services/parsing.service";
 import { db } from "../db/index";
 import { files } from "../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -39,6 +39,25 @@ export const getFile = asyncHandler<AuthRequest>(async (req, res: Response) => {
   const file = await getFileById(req.params.id as string, req.user.id);
   if (!file) return res.status(404).json({ error: "File not found" });
   res.json({ data: file, message: "File retrieved" });
+});
+
+export const getDocxPreview = asyncHandler<AuthRequest>(async (req, res: Response) => {
+  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const file = await getFileById(req.params.id as string, req.user.id);
+  if (!file) return res.status(404).json({ error: "File not found" });
+  if (file.type !== "docx") {
+    return res.status(400).json({ error: "Preview is only available for DOCX files" });
+  }
+  if (!file.url) {
+    return res.status(400).json({ error: "File has no downloadable URL" });
+  }
+
+  const html = await parseDocxHtml(file.url);
+  if (!html) {
+    return res.status(422).json({ error: "Could not render a formatted preview for this document" });
+  }
+
+  res.json({ data: { html }, message: "DOCX preview generated" });
 });
 
 export const uploadFile = asyncHandler<AuthRequest>(async (req, res: Response) => {

@@ -254,6 +254,74 @@
     letter-spacing: -0.02em;
   }
 
+  .docx-preview {
+    color: var(--foreground);
+    font-family: var(--font-body);
+    line-height: 1.65;
+    max-width: 72ch;
+  }
+
+  .docx-preview h1,
+  .docx-preview h2,
+  .docx-preview h3,
+  .docx-preview h4 {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 1.25em 0 0.5em;
+    line-height: 1.2;
+  }
+
+  .docx-preview h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .docx-preview h2 {
+    font-size: var(--text-xl);
+  }
+
+  .docx-preview h3 {
+    font-size: var(--text-lg);
+  }
+
+  .docx-preview p {
+    margin: 0 0 0.85em;
+  }
+
+  .docx-preview ul,
+  .docx-preview ol {
+    margin: 0 0 1em;
+    padding-left: 1.35em;
+  }
+
+  .docx-preview li {
+    margin-bottom: 0.35em;
+  }
+
+  .docx-preview strong {
+    font-weight: 800;
+  }
+
+  .docx-preview table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: var(--text-sm);
+  }
+
+  .docx-preview th,
+  .docx-preview td {
+    border: 2px solid var(--border);
+    padding: 0.5rem 0.65rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .docx-preview th {
+    background: var(--surface-muted);
+    font-weight: 800;
+  }
+
   .status-pill {
     display: inline-flex;
     min-height: 1.75rem;

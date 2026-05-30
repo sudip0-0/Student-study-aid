@@ -115,6 +115,7 @@ export default function Study() {
           ) : (
             <DocxViewer
               fileId={file.id}
+              fileType={file.type === "docx" ? "docx" : "txt"}
               extractedText={file.extractedText || "No text could be extracted from this document."}
               focusHighlight={focusHighlight}
               onFocusHandled={() => setFocusHighlight(null)}

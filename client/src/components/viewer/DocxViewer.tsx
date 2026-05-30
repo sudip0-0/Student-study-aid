@@ -1,10 +1,12 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
 import HighlightPopover from "./HighlightPopover";
-import { useHighlights, useCreateHighlight } from "../../hooks";
+import { useHighlights, useCreateHighlight, useDocxPreview } from "../../hooks";
+import { getApiErrorMessage } from "../../lib/api";
 import type { Highlight } from "../../types";
 
 interface DocxViewerProps {
   fileId: string;
+  fileType: "docx" | "txt";
   extractedText: string;
   focusHighlight?: Highlight | null;
   onFocusHandled?: () => void;
@@ -17,12 +19,21 @@ interface HighlightSelection {
   y: number;
 }
 
+type ViewMode = "formatted" | "plain";
+
 const highlightColors: Record<string, string> = {
   yellow: "bg-yellow-200 dark:bg-yellow-900/50",
   green: "bg-green-200 dark:bg-green-900/50",
   pink: "bg-pink-200 dark:bg-pink-900/50",
   blue: "bg-blue-200 dark:bg-blue-900/50",
 };
+
+function sanitizeDocxHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+}
 
 function renderHighlightedText(text: string, highlights: Highlight[]): ReactNode[] {
   const validHighlights = highlights.filter((h) => h.text.length > 0);
@@ -65,15 +76,39 @@ function renderHighlightedText(text: string, highlights: Highlight[]): ReactNode
   return nodes;
 }
 
-export default function DocxViewer({ fileId, extractedText, focusHighlight, onFocusHandled }: DocxViewerProps) {
+export default function DocxViewer({
+  fileId,
+  fileType,
+  extractedText,
+  focusHighlight,
+  onFocusHandled,
+}: DocxViewerProps) {
   const [highlightSelection, setHighlightSelection] = useState<HighlightSelection | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("formatted");
   const contentRef = useRef<HTMLDivElement>(null);
+
+  const isDocx = fileType === "docx";
+  const {
+    data: docxHtml,
+    isLoading: previewLoading,
+    isError: previewError,
+    error: previewErrorDetail,
+  } = useDocxPreview(fileId, isDocx);
 
   const { data: highlights = [] } = useHighlights(fileId);
   const createHighlight = useCreateHighlight();
 
+  const canShowFormatted = isDocx && !!docxHtml && !previewError;
+  const showFormatted = canShowFormatted && viewMode === "formatted";
+
   useEffect(() => {
-    if (focusHighlight?.text && contentRef.current) {
+    if (focusHighlight?.text) {
+      setViewMode("plain");
+    }
+  }, [focusHighlight?.id]);
+
+  useEffect(() => {
+    if (focusHighlight?.text && contentRef.current && viewMode === "plain") {
       const escapedId = CSS.escape(focusHighlight.id);
       const mark = contentRef.current.querySelector(`[data-highlight-id="${escapedId}"]`);
       if (mark) {
@@ -81,7 +116,7 @@ export default function DocxViewer({ fileId, extractedText, focusHighlight, onFo
         onFocusHandled?.();
       }
     }
-  }, [focusHighlight, onFocusHandled]);
+  }, [focusHighlight, onFocusHandled, viewMode]);
 
   const handleTextSelect = useCallback((e: React.MouseEvent) => {
     const selection = window.getSelection();
@@ -113,29 +148,83 @@ export default function DocxViewer({ fileId, extractedText, focusHighlight, onFo
   );
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="relative flex h-full flex-col">
+      {isDocx && (
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-border bg-surface-muted px-3 py-2">
+          <p className="font-mono text-[10px] font-bold uppercase text-muted-foreground">
+            {previewLoading ? "Loading formatted view…" : showFormatted ? "Formatted document" : "Plain text"}
+          </p>
+          {canShowFormatted && (
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => setViewMode("formatted")}
+                className={`rounded-md border-2 px-2 py-1 text-[10px] font-extrabold ${
+                  viewMode === "formatted"
+                    ? "border-border bg-accent shadow-neoSm"
+                    : "border-transparent text-muted-foreground hover:border-border"
+                }`}
+              >
+                Formatted
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("plain")}
+                className={`rounded-md border-2 px-2 py-1 text-[10px] font-extrabold ${
+                  viewMode === "plain"
+                    ? "border-border bg-accent shadow-neoSm"
+                    : "border-transparent text-muted-foreground hover:border-border"
+                }`}
+              >
+                Plain text
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div
         ref={contentRef}
-        className="flex-1 overflow-auto p-6 whitespace-pre-wrap text-sm leading-relaxed"
+        className="flex-1 overflow-auto p-6 text-sm leading-relaxed"
         onMouseUp={handleTextSelect}
       >
-        {renderHighlightedText(extractedText, highlights)}
+        {isDocx && previewLoading && (
+          <p className="text-xs font-bold text-muted-foreground">Rendering document layout…</p>
+        )}
+
+        {isDocx && previewError && !previewLoading && (
+          <p className="mb-3 rounded-md border-2 border-border bg-warning-soft px-3 py-2 text-xs font-bold">
+            {getApiErrorMessage(previewErrorDetail, "Formatted preview unavailable")}. Showing plain text.
+          </p>
+        )}
+
+        {showFormatted ? (
+          <article
+            className="docx-preview max-w-none"
+            dangerouslySetInnerHTML={{ __html: sanitizeDocxHtml(docxHtml) }}
+          />
+        ) : (
+          <div className="whitespace-pre-wrap">{renderHighlightedText(extractedText, highlights)}</div>
+        )}
       </div>
 
       {highlights.length > 0 && (
-        <div className="border-t p-2 shrink-0 space-y-1 max-h-32 overflow-y-auto">
-          <p className="text-xs text-muted-foreground font-medium">Highlights:</p>
+        <div className="max-h-32 shrink-0 space-y-1 overflow-y-auto border-t p-2">
+          <p className="text-xs font-medium text-muted-foreground">Highlights:</p>
           {highlights.map((h: Highlight) => (
             <div
               key={h.id}
-              className={`text-xs px-2 py-1 rounded border-l-2 ${
-                h.color === "yellow" ? "bg-yellow-100 border-yellow-400 dark:bg-yellow-950 dark:border-yellow-600" :
-                h.color === "green" ? "bg-green-100 border-green-400 dark:bg-green-950 dark:border-green-600" :
-                h.color === "pink" ? "bg-pink-100 border-pink-400 dark:bg-pink-950 dark:border-pink-600" :
-                "bg-blue-100 border-blue-400 dark:bg-blue-950 dark:border-blue-600"
+              className={`rounded border-l-2 px-2 py-1 text-xs ${
+                h.color === "yellow"
+                  ? "border-yellow-400 bg-yellow-100 dark:border-yellow-600 dark:bg-yellow-950"
+                  : h.color === "green"
+                    ? "border-green-400 bg-green-100 dark:border-green-600 dark:bg-green-950"
+                    : h.color === "pink"
+                      ? "border-pink-400 bg-pink-100 dark:border-pink-600 dark:bg-pink-950"
+                      : "border-blue-400 bg-blue-100 dark:border-blue-600 dark:bg-blue-950"
               }`}
             >
-              {h.text.length > 80 ? h.text.slice(0, 77) + "..." : h.text}
+              {h.text.length > 80 ? `${h.text.slice(0, 77)}...` : h.text}
             </div>
           ))}
         </div>

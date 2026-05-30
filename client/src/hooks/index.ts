@@ -64,6 +64,19 @@ export function useFile(id: string) {
   });
 }
 
+export function useDocxPreview(fileId: string, enabled: boolean) {
+  return useQuery<string>({
+    queryKey: ["files", fileId, "docx-preview"],
+    queryFn: async () => {
+      const { data } = await api.get(`/files/${fileId}/docx-preview`);
+      return data.data.html as string;
+    },
+    enabled: enabled && !!fileId,
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+}
+
 export function useFolders() {
   return useQuery<FolderType[]>({
     queryKey: ["folders"],
