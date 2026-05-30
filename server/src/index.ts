@@ -1,7 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { sql } from "drizzle-orm";
 import { z } from "zod";
+import { db } from "./db/index";
 import { authRouter } from "./routes/auth.routes";
 import { fileRouter } from "./routes/file.routes";
 import { folderRouter } from "./routes/folder.routes";
@@ -24,6 +26,11 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(1),
   ENCRYPTION_KEY: z.string().length(64),
   UPLOADTHING_SECRET: z.string().min(1),
+  CLIENT_URL: z.string().url().optional(),
+  CORS_ORIGINS: z.string().optional(),
+  APP_URL: z.string().url().optional(),
+  PORT: z.coerce.number().int().positive().optional(),
+  NODE_ENV: z.enum(["development", "production", "test"]).optional(),
 });
 const envResult = envSchema.safeParse(process.env);
 if (!envResult.success) {
@@ -31,11 +38,30 @@ if (!envResult.success) {
   process.exit(1);
 }
 
+function resolveCorsOrigins(): string[] {
+  const fromList = process.env.CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [];
+  const clientUrl = process.env.CLIENT_URL?.trim();
+  const defaults = ["http://localhost:5173"];
+  const merged = [...fromList, ...(clientUrl ? [clientUrl] : []), ...defaults];
+  return [...new Set(merged)];
+}
+
+const corsOrigins = resolveCorsOrigins();
+
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = envResult.data.PORT ?? 3001;
 
 // --- Middleware ---
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || corsOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: "1mb" }));
 
 // Rate limit AI endpoints
@@ -57,8 +83,22 @@ app.use("/api/flashcards", authMiddleware, flashcardRouter);
 app.use("/api/cheatsheets", authMiddleware, cheatsheetRouter);
 app.use("/api/search", authMiddleware, searchRouter);
 
-// Health check
-app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+// Health check (deployment / uptime probes)
+app.get("/api/health", async (_req, res) => {
+  try {
+    await db.execute(sql`select 1`);
+    res.json({
+      data: {
+        status: "ok",
+        database: "connected",
+        environment: process.env.NODE_ENV ?? "development",
+      },
+      message: "Service healthy",
+    });
+  } catch {
+    res.status(503).json({ error: "Database unavailable" });
+  }
+});
 
 app.use(errorMiddleware);
 

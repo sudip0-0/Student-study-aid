@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Upload, X } from "lucide-react";
 import { cn } from "../../lib/utils";
-import api from "../../lib/api";
+import api, { getApiErrorMessage } from "../../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -46,7 +46,7 @@ export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
         reader.readAsDataURL(file);
       });
 
-      setProgress("Saving...");
+      setProgress("Saving and extracting text...");
       await api.post("/upload/file", {
         name: file.name,
         type,
@@ -56,14 +56,12 @@ export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
       });
 
       queryClient.invalidateQueries({ queryKey: ["files"] });
-      toast.success("File uploaded");
+      toast.success("File uploaded — text extraction runs in the background");
       onClose();
     } catch (err: unknown) {
-      const message = typeof err === "object" && err && "response" in err
-        ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
-        : undefined;
-      setError(message || "Upload failed");
-      toast.error(message || "Upload failed");
+      const message = getApiErrorMessage(err, "Upload failed");
+      setError(message);
+      toast.error(message);
     } finally {
       setUploading(false);
       setProgress("");

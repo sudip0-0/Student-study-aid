@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "../lib/api";
+import api, { getApiErrorMessage } from "../lib/api";
 import { useAuthStore } from "../store/auth";
 import { toast } from "sonner";
 import type {
@@ -12,8 +12,7 @@ import type {
 } from "../types";
 
 function getErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error) return error.message;
-  return fallback;
+  return getApiErrorMessage(error, fallback);
 }
 
 export function useAuthCheck() {
@@ -56,6 +55,12 @@ export function useFile(id: string) {
       return data.data;
     },
     enabled: !!id,
+    refetchInterval: (query) => {
+      const file = query.state.data;
+      if (!file || file.url === "") return false;
+      if (file.extractedText) return false;
+      return 3000;
+    },
   });
 }
 

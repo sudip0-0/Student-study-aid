@@ -82,6 +82,15 @@ export default function Study() {
         </div>
       </div>
 
+      {!isBlank && !file.extractedText && (
+        <p
+          className="shrink-0 border-b-2 border-border bg-warning-soft px-4 py-2 text-xs font-bold text-foreground"
+          role="status"
+        >
+          Extracting document text… AI features unlock once extraction finishes.
+        </p>
+      )}
+
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
         <div className="min-h-[45dvh] min-w-0 flex-[3] overflow-hidden border-b-2 border-border lg:min-h-0 lg:border-b-0 lg:border-r-2">
           {file.type === "pdf" ? (

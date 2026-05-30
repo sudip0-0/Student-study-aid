@@ -56,5 +56,5 @@ noteRouter.delete("/:id", validateUUIDParam("id"), asyncHandler<AuthRequest>(asy
   const userId = req.user.id;
   const note = await deleteNote(req.params.id as string, userId);
   if (!note) return res.status(404).json({ error: "Note not found" });
-  res.json({ message: "Note deleted" });
+  res.json({ data: note, message: "Note deleted" });
 }));

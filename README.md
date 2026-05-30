@@ -80,7 +80,11 @@ ENCRYPTION_KEY=your-32-byte-hex-key  # For encrypting user API keys at rest
 UPLOADTHING_SECRET=sk_live_...
 UPLOADTHING_APP_ID=your-app-id
 APP_URL=http://localhost:5173
+CLIENT_URL=http://localhost:5173
+# Optional: comma-separated extra CORS origins for production
+CORS_ORIGINS=
 PORT=3001
+NODE_ENV=development
 ```
 
 **Client** — create `client/.env`:
@@ -143,7 +147,10 @@ Get a free key at [openrouter.ai](https://openrouter.ai).
 | `server: pnpm drizzle-kit push` | Sync schema to NeonDB            |
 | `server: pnpm drizzle-kit studio` | Open Drizzle Studio (DB GUI)  |
 | `client: pnpm dev`              | Start frontend dev server        |
-| `client: pnpm build`            | Build for production             |
+| `pnpm build`                    | Build server + client for production |
+| `pnpm build:server`             | Build backend only               |
+| `pnpm build:client`             | Build frontend only              |
+| `client: pnpm build`            | Build client (from client/)      |
 
 ---
 

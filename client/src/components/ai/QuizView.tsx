@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "../ui/button";
 import { Loader2, Check, X, ChevronLeft, ChevronDown } from "lucide-react";
 import { useSaveQuizAttempt, useQuizzesByFile, useDeleteQuiz } from "../../hooks";
+import { getApiErrorMessage } from "../../lib/api";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { Quiz, QuizQuestion } from "../../types";
 
@@ -29,8 +30,7 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
       {
         onSuccess: (data) => openQuiz(data),
         onError: (err: Error) => {
-          const msg = (err as unknown as { response?: { data?: { error?: string } } }).response?.data?.error || err.message;
-          setError(msg);
+          setError(getApiErrorMessage(err, "Failed to generate quiz"));
         },
       }
     );

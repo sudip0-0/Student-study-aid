@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "../ui/button";
 import { Loader2, ChevronLeft, X } from "lucide-react";
 import { useCheatsheets, useDeleteCheatsheet } from "../../hooks";
+import { getApiErrorMessage } from "../../lib/api";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { Cheatsheet, CheatsheetSection } from "../../types";
 
@@ -23,8 +24,7 @@ export default function CheatsheetView({ fileId, mutation }: CheatsheetViewProps
       {
         onSuccess: (data) => setActive(data),
         onError: (err: Error) => {
-          const msg = (err as unknown as { response?: { data?: { error?: string } } }).response?.data?.error || err.message;
-          setError(msg);
+          setError(getApiErrorMessage(err, "Failed to generate cheatsheet"));
         },
       }
     );

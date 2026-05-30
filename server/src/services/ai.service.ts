@@ -116,11 +116,16 @@ function openRouterRequestError(status: number, details: string | undefined) {
   );
 }
 
+const OPENROUTER_TIMEOUT_MS = 120_000;
+
 async function callOpenRouter(apiKey: string, model: string, messages: { role: ChatRole; content: string }[]) {
   let response: Response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), OPENROUTER_TIMEOUT_MS);
   try {
     response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
@@ -133,8 +138,16 @@ async function callOpenRouter(apiKey: string, model: string, messages: { role: C
         temperature: 0.3,
       }),
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw Object.assign(
+        new Error("OpenRouter took too long to respond. Try again or choose a faster model."),
+        { statusCode: 504, expose: true }
+      );
+    }
     throw Object.assign(new Error("Could not reach OpenRouter. Check your network connection and try again."), { statusCode: 502, expose: true });
+  } finally {
+    clearTimeout(timeout);
   }
 
   if (!response.ok) {

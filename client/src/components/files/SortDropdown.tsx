@@ -32,7 +32,10 @@ export default function SortDropdown({ value, onChange }: SortDropdownProps) {
   return (
     <div className="relative" ref={ref}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         className="flex min-h-10 items-center gap-1.5 rounded-md border-2 border-border bg-surface px-3 py-1 text-xs font-extrabold shadow-neoSm transition-colors hover:bg-accent"
       >
         <ArrowUpDown className="h-3 w-3" />

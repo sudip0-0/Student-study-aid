@@ -1,4 +1,17 @@
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
+
+/** Prefer server `{ error }` messages over generic Axios status text. */
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (isAxiosError(error)) {
+    const payload = error.response?.data;
+    if (payload && typeof payload === "object" && "error" in payload) {
+      const message = (payload as { error?: unknown }).error;
+      if (typeof message === "string" && message.trim()) return message;
+    }
+  }
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return fallback;
+}
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",

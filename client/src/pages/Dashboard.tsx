@@ -15,6 +15,21 @@ import type { File as FileType } from "../types";
 import type { FileTypeFilter } from "../components/files/FilterTabs";
 import type { SortOption } from "../components/files/SortDropdown";
 
+const SORT_STORAGE_KEY = "lumio:dashboard:sort";
+const FILTER_STORAGE_KEY = "lumio:dashboard:typeFilter";
+
+function readStoredSort(): SortOption {
+  const value = localStorage.getItem(SORT_STORAGE_KEY);
+  if (value === "name" || value === "date" || value === "size") return value;
+  return "date";
+}
+
+function readStoredFilter(): FileTypeFilter {
+  const value = localStorage.getItem(FILTER_STORAGE_KEY);
+  if (value === "all" || value === "pdf" || value === "docx" || value === "txt") return value;
+  return "all";
+}
+
 export default function Dashboard() {
   const { activeFolderId, setActiveFolderId } = useOutletContext<{
     activeFolderId: string | null;
@@ -29,8 +44,18 @@ export default function Dashboard() {
   const [renamingFile, setRenamingFile] = useState<FileType | null>(null);
   const [newName, setNewName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<FileTypeFilter>("all");
-  const [sortOption, setSortOption] = useState<SortOption>("date");
+  const [typeFilter, setTypeFilter] = useState<FileTypeFilter>(readStoredFilter);
+  const [sortOption, setSortOption] = useState<SortOption>(readStoredSort);
+
+  const handleTypeFilterChange = (filter: FileTypeFilter) => {
+    setTypeFilter(filter);
+    localStorage.setItem(FILTER_STORAGE_KEY, filter);
+  };
+
+  const handleSortChange = (sort: SortOption) => {
+    setSortOption(sort);
+    localStorage.setItem(SORT_STORAGE_KEY, sort);
+  };
 
   const updateFile = useUpdateFile();
 
@@ -119,8 +144,8 @@ export default function Dashboard() {
           />
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center md:ml-auto">
-          <FilterTabs active={typeFilter} onChange={setTypeFilter} />
-          <SortDropdown value={sortOption} onChange={setSortOption} />
+          <FilterTabs active={typeFilter} onChange={handleTypeFilterChange} />
+          <SortDropdown value={sortOption} onChange={handleSortChange} />
           <div className="flex w-fit rounded-md border-2 border-border bg-surface p-1 shadow-neoSm">
             <button
               onClick={() => setViewMode("grid")}

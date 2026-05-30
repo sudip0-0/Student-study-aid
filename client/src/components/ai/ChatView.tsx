@@ -3,6 +3,7 @@ import { Button } from "../ui/button";
 import { Loader2, Send } from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { ChatMessage } from "../../types";
+import { getApiErrorMessage } from "../../lib/api";
 
 interface ChatViewProps {
   fileId: string;
@@ -36,8 +37,7 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
           setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
         },
         onError: (err: Error) => {
-          const msg = (err as unknown as { response?: { data?: { error?: string } } }).response?.data?.error || err.message;
-          setError(msg);
+          setError(getApiErrorMessage(err, "Failed to send message"));
         },
       }
     );
