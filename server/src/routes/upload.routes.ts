@@ -4,10 +4,7 @@ import { UTApi } from "uploadthing/server";
 import { z } from "zod";
 import { asyncHandler } from "../utils/asyncHandler";
 import { createFileRecord } from "../services/file.service";
-import { parseFile } from "../services/parsing.service";
-import { db } from "../db/index";
-import { files } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { runFileExtraction } from "../services/extraction.service";
 import { AuthRequest, authMiddleware } from "../middleware/auth.middleware";
 
 export const uploadRouter = Router();
@@ -83,14 +80,7 @@ uploadRouter.post("/file", authMiddleware, asyncHandler(async (req: AuthRequest,
     folderId: folderId || undefined,
   });
 
-  parseFile(type, uploaded.data.url).then(async (text) => {
-    if (text) {
-      await db
-        .update(files)
-        .set({ extractedText: text })
-        .where(and(eq(files.id, file.id), eq(files.userId, req.user!.id)));
-    }
-  }).catch(() => {});
+  void runFileExtraction(file.id, req.user.id, type, uploaded.data.url);
 
   res.status(201).json({ data: file, message: "File uploaded" });
 }));
@@ -122,14 +112,7 @@ uploadRouter.post("/uploadthing", asyncHandler(async (req: Request, res: Respons
     folderId: folderId || undefined,
   });
 
-  parseFile(type, url).then(async (text) => {
-    if (text) {
-      await db
-        .update(files)
-        .set({ extractedText: text })
-        .where(and(eq(files.id, file.id), eq(files.userId, userId)));
-    }
-  }).catch(() => {});
+  void runFileExtraction(file.id, userId, type, url);
 
   res.status(201).json({ data: file, message: "File processed" });
 }));

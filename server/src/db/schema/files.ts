@@ -13,5 +13,7 @@ export const files = pgTable("files", {
   url: text("url").notNull(),
   size: integer("size"),
   extractedText: text("extracted_text"),
+  extractedHtml: text("extracted_html"),
+  extractionStatus: text("extraction_status").notNull().default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });

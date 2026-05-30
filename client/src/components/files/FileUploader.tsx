@@ -10,11 +10,22 @@ interface FileUploaderProps {
   onClose: () => void;
 }
 
-const ACCEPTED_TYPES = {
+const ACCEPTED_TYPES: Record<string, "pdf" | "docx" | "txt"> = {
   "application/pdf": "pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
   "text/plain": "txt",
 };
+
+function resolveFileType(file: File): "pdf" | "docx" | "txt" | null {
+  const byMime = ACCEPTED_TYPES[file.type];
+  if (byMime) return byMime;
+
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".pdf")) return "pdf";
+  if (name.endsWith(".docx")) return "docx";
+  if (name.endsWith(".txt")) return "txt";
+  return null;
+}
 
 export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
   const queryClient = useQueryClient();
@@ -24,7 +35,7 @@ export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
   const [error, setError] = useState("");
 
   const uploadFile = useCallback(async (file: File) => {
-    const type = ACCEPTED_TYPES[file.type as keyof typeof ACCEPTED_TYPES];
+    const type = resolveFileType(file);
     if (!type) {
       setError("Unsupported file type. Use PDF, DOCX, or TXT.");
       return;

@@ -37,7 +37,7 @@ const cheatsheetSchema = z.object({
 });
 
 const explainSchema = z.object({
-  text: z.string().trim().min(1),
+  text: z.string().trim().min(1).max(10000),
   level: z.enum(["simple", "moderate", "detailed"]).optional(),
 });
 
@@ -45,7 +45,7 @@ const chatSchema = z.object({
   fileId: z.string().uuid(),
   messages: z.array(z.object({
     role: z.enum(["user", "assistant"]),
-    content: z.string().trim().min(1),
+    content: z.string().trim().min(1).max(4000),
   })).min(1).max(30),
 });
 

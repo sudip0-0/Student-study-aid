@@ -3,6 +3,7 @@ import { Button } from "../ui/button";
 import { Loader2, ChevronLeft, X } from "lucide-react";
 import { useCheatsheets, useDeleteCheatsheet } from "../../hooks";
 import { getApiErrorMessage } from "../../lib/api";
+import AIErrorRetry from "./AIErrorRetry";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { Cheatsheet, CheatsheetSection } from "../../types";
 
@@ -67,7 +68,9 @@ export default function CheatsheetView({ fileId, mutation }: CheatsheetViewProps
       </Button>
 
       {mutation.isPending && <p className="rounded-md border-2 border-border bg-surface-muted px-3 py-2 text-xs font-bold text-muted-foreground">Generating cheatsheet...</p>}
-      {error && <p className="rounded-md border-2 border-border bg-danger-soft px-3 py-2 text-xs font-bold text-foreground">{error}</p>}
+      {error && (
+        <AIErrorRetry message={error} onRetry={handleGenerate} disabled={mutation.isPending} />
+      )}
 
       {saved.length > 0 && (
         <div className="space-y-1.5">

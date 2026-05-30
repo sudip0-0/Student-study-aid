@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { listFiles, getFile, getDocxPreview, uploadFile, patchFile, removeFile, createBlank } from "../controllers/file.controller";
+import { listFiles, getFile, getDocxPreview, reparseFile, uploadFile, patchFile, removeFile, createBlank } from "../controllers/file.controller";
 import { getNotes, getHighlights } from "./file.routes.helpers";
 import { validateUUIDParam } from "../utils/validateUUID";
 
@@ -27,6 +27,7 @@ export const fileRouter = Router();
 
 fileRouter.get("/", listFiles);
 fileRouter.get("/:id/docx-preview", validateUUIDParam("id"), getDocxPreview);
+fileRouter.post("/:id/reparse", validateUUIDParam("id"), reparseFile);
 fileRouter.get("/:id", validateUUIDParam("id"), getFile);
 
 fileRouter.post("/blank", (req, res, next) => {

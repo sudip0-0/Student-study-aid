@@ -2,12 +2,15 @@ import { useState, useCallback, useRef, useEffect, type ReactNode } from "react"
 import HighlightPopover from "./HighlightPopover";
 import { useHighlights, useCreateHighlight, useDocxPreview } from "../../hooks";
 import { getApiErrorMessage } from "../../lib/api";
+import { highlightFindMatches } from "../../lib/findHighlight";
 import type { Highlight } from "../../types";
 
 interface DocxViewerProps {
   fileId: string;
   fileType: "docx" | "txt";
   extractedText: string;
+  extractedHtml?: string | null;
+  findQuery?: string;
   focusHighlight?: Highlight | null;
   onFocusHandled?: () => void;
 }
@@ -21,12 +24,19 @@ interface HighlightSelection {
 
 type ViewMode = "formatted" | "plain";
 
+const DOCX_VIEW_KEY = "lumio:docxViewMode";
+
 const highlightColors: Record<string, string> = {
   yellow: "bg-yellow-200 dark:bg-yellow-900/50",
   green: "bg-green-200 dark:bg-green-900/50",
   pink: "bg-pink-200 dark:bg-pink-900/50",
   blue: "bg-blue-200 dark:bg-blue-900/50",
 };
+
+function readViewMode(): ViewMode {
+  const value = localStorage.getItem(DOCX_VIEW_KEY);
+  return value === "plain" ? "plain" : "formatted";
+}
 
 function sanitizeDocxHtml(html: string): string {
   return html
@@ -35,8 +45,16 @@ function sanitizeDocxHtml(html: string): string {
     .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
 }
 
-function renderHighlightedText(text: string, highlights: Highlight[]): ReactNode[] {
+function renderHighlightedText(
+  text: string,
+  highlights: Highlight[],
+  findQuery: string
+): ReactNode[] {
   const validHighlights = highlights.filter((h) => h.text.length > 0);
+  if (validHighlights.length === 0) {
+    return highlightFindMatches(text, findQuery, "find");
+  }
+
   const nodes: ReactNode[] = [];
   let index = 0;
 
@@ -53,12 +71,14 @@ function renderHighlightedText(text: string, highlights: Highlight[]): ReactNode
     }
 
     if (!nextHighlight || nextIndex === -1) {
-      nodes.push(text.slice(index));
+      nodes.push(...highlightFindMatches(text.slice(index), findQuery, `tail-${index}`));
       break;
     }
 
     if (nextIndex > index) {
-      nodes.push(text.slice(index, nextIndex));
+      nodes.push(
+        ...highlightFindMatches(text.slice(index, nextIndex), findQuery, `seg-${index}`)
+      );
     }
 
     nodes.push(
@@ -80,32 +100,48 @@ export default function DocxViewer({
   fileId,
   fileType,
   extractedText,
+  extractedHtml,
+  findQuery = "",
   focusHighlight,
   onFocusHandled,
 }: DocxViewerProps) {
   const [highlightSelection, setHighlightSelection] = useState<HighlightSelection | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("formatted");
+  const [viewMode, setViewMode] = useState<ViewMode>(readViewMode);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const isDocx = fileType === "docx";
+  const cachedHtml = extractedHtml?.trim() || null;
   const {
-    data: docxHtml,
+    data: fetchedHtml,
     isLoading: previewLoading,
     isError: previewError,
     error: previewErrorDetail,
-  } = useDocxPreview(fileId, isDocx);
+  } = useDocxPreview(fileId, isDocx, !!cachedHtml);
 
+  const docxHtml = cachedHtml || fetchedHtml;
   const { data: highlights = [] } = useHighlights(fileId);
   const createHighlight = useCreateHighlight();
+  const hasHighlights = highlights.length > 0;
 
   const canShowFormatted = isDocx && !!docxHtml && !previewError;
   const showFormatted = canShowFormatted && viewMode === "formatted";
 
+  const setViewModePersisted = (mode: ViewMode) => {
+    localStorage.setItem(DOCX_VIEW_KEY, mode);
+    setViewMode(mode);
+  };
+
   useEffect(() => {
     if (focusHighlight?.text) {
-      setViewMode("plain");
+      setViewModePersisted("plain");
     }
   }, [focusHighlight?.id]);
+
+  useEffect(() => {
+    if (hasHighlights && viewMode === "formatted" && isDocx) {
+      setViewModePersisted("plain");
+    }
+  }, [hasHighlights, isDocx]);
 
   useEffect(() => {
     if (focusHighlight?.text && contentRef.current && viewMode === "plain") {
@@ -128,7 +164,7 @@ export default function DocxViewer({
     setHighlightSelection({
       text,
       page: 0,
-      x: rect.left + rect.width / 2 - 112,
+      x: rect.left + rect.width / 2 - 128,
       y: rect.bottom + window.scrollY + 8,
     });
   }, []);
@@ -150,15 +186,19 @@ export default function DocxViewer({
   return (
     <div className="relative flex h-full flex-col">
       {isDocx && (
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-border bg-surface-muted px-3 py-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b-2 border-border bg-surface-muted px-3 py-2">
           <p className="font-mono text-[10px] font-bold uppercase text-muted-foreground">
-            {previewLoading ? "Loading formatted view…" : showFormatted ? "Formatted document" : "Plain text"}
+            {previewLoading && !cachedHtml
+              ? "Loading formatted view…"
+              : showFormatted
+                ? "Formatted document"
+                : "Plain text"}
           </p>
           {canShowFormatted && (
             <div className="flex gap-1">
               <button
                 type="button"
-                onClick={() => setViewMode("formatted")}
+                onClick={() => setViewModePersisted("formatted")}
                 className={`rounded-md border-2 px-2 py-1 text-[10px] font-extrabold ${
                   viewMode === "formatted"
                     ? "border-border bg-accent shadow-neoSm"
@@ -169,7 +209,7 @@ export default function DocxViewer({
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode("plain")}
+                onClick={() => setViewModePersisted("plain")}
                 className={`rounded-md border-2 px-2 py-1 text-[10px] font-extrabold ${
                   viewMode === "plain"
                     ? "border-border bg-accent shadow-neoSm"
@@ -183,18 +223,25 @@ export default function DocxViewer({
         </div>
       )}
 
+      {hasHighlights && isDocx && (
+        <p className="shrink-0 border-b border-border bg-warning-soft px-3 py-1.5 text-[10px] font-bold">
+          Highlights appear in plain text view. Formatted layout does not show saved highlights yet.
+        </p>
+      )}
+
       <div
         ref={contentRef}
         className="flex-1 overflow-auto p-6 text-sm leading-relaxed"
         onMouseUp={handleTextSelect}
       >
-        {isDocx && previewLoading && (
+        {isDocx && previewLoading && !cachedHtml && (
           <p className="text-xs font-bold text-muted-foreground">Rendering document layout…</p>
         )}
 
-        {isDocx && previewError && !previewLoading && (
+        {isDocx && previewError && !cachedHtml && !previewLoading && (
           <p className="mb-3 rounded-md border-2 border-border bg-warning-soft px-3 py-2 text-xs font-bold">
-            {getApiErrorMessage(previewErrorDetail, "Formatted preview unavailable")}. Showing plain text.
+            {getApiErrorMessage(previewErrorDetail, "Formatted preview unavailable")}. Showing plain
+            text.
           </p>
         )}
 
@@ -204,31 +251,11 @@ export default function DocxViewer({
             dangerouslySetInnerHTML={{ __html: sanitizeDocxHtml(docxHtml) }}
           />
         ) : (
-          <div className="whitespace-pre-wrap">{renderHighlightedText(extractedText, highlights)}</div>
+          <div className="whitespace-pre-wrap">
+            {renderHighlightedText(extractedText, highlights, findQuery)}
+          </div>
         )}
       </div>
-
-      {highlights.length > 0 && (
-        <div className="max-h-32 shrink-0 space-y-1 overflow-y-auto border-t p-2">
-          <p className="text-xs font-medium text-muted-foreground">Highlights:</p>
-          {highlights.map((h: Highlight) => (
-            <div
-              key={h.id}
-              className={`rounded border-l-2 px-2 py-1 text-xs ${
-                h.color === "yellow"
-                  ? "border-yellow-400 bg-yellow-100 dark:border-yellow-600 dark:bg-yellow-950"
-                  : h.color === "green"
-                    ? "border-green-400 bg-green-100 dark:border-green-600 dark:bg-green-950"
-                    : h.color === "pink"
-                      ? "border-pink-400 bg-pink-100 dark:border-pink-600 dark:bg-pink-950"
-                      : "border-blue-400 bg-blue-100 dark:border-blue-600 dark:bg-blue-950"
-              }`}
-            >
-              {h.text.length > 80 ? `${h.text.slice(0, 77)}...` : h.text}
-            </div>
-          ))}
-        </div>
-      )}
 
       {highlightSelection && (
         <HighlightPopover

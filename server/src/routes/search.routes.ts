@@ -18,7 +18,12 @@ searchRouter.get("/", asyncHandler(async (req: AuthRequest, res: Response) => {
   const fileResults = await db
     .select({ id: files.id, name: files.name, type: files.type })
     .from(files)
-    .where(and(eq(files.userId, req.user.id), ilike(files.name, pattern)))
+    .where(
+      and(
+        eq(files.userId, req.user.id),
+        or(ilike(files.name, pattern), ilike(files.extractedText, pattern))
+      )
+    )
     .limit(10);
 
   const noteResults = await db

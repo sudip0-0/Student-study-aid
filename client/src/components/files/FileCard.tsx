@@ -78,7 +78,14 @@ export default function FileCard({ file, onSelect, onRename }: FileCardProps) {
   }, [showMenu]);
 
   return (
-    <div className="relative group">
+    <div
+      className="relative group"
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/file-id", file.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+    >
       <button
         onClick={() => onSelect(file)}
         className={cn(

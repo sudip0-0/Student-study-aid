@@ -4,17 +4,38 @@ import { Loader2, Send } from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { ChatMessage } from "../../types";
 import { getApiErrorMessage } from "../../lib/api";
+import AIErrorRetry from "./AIErrorRetry";
 
 interface ChatViewProps {
   fileId: string;
   mutation: UseMutationResult<string, Error, { fileId: string; messages: ChatMessage[] }>;
 }
 
+const chatStorageKey = (fileId: string) => `lumio:chat:${fileId}`;
+
+function loadStoredMessages(fileId: string): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(chatStorageKey(fileId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ChatMessage[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function ChatView({ fileId, mutation }: ChatViewProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadStoredMessages(fileId));
   const [input, setInput] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMessages(loadStoredMessages(fileId));
+  }, [fileId]);
+
+  useEffect(() => {
+    localStorage.setItem(chatStorageKey(fileId), JSON.stringify(messages));
+  }, [fileId, messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -28,16 +49,12 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setInput("");
-    setError(null);
 
     mutation.mutate(
       { fileId, messages: updatedMessages },
       {
         onSuccess: (reply) => {
           setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-        },
-        onError: (err: Error) => {
-          setError(getApiErrorMessage(err, "Failed to send message"));
         },
       }
     );
@@ -50,12 +67,29 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
     }
   };
 
+  const handleClear = () => {
+    setMessages([]);
+    localStorage.removeItem(chatStorageKey(fileId));
+  };
+
   return (
-    <div className="flex flex-col h-full max-h-[450px]">
-      <div className="flex-1 overflow-auto space-y-3 pr-1">
+    <div className="flex h-full max-h-[450px] flex-col">
+      <div className="mb-2 flex shrink-0 justify-end">
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="text-[10px] font-bold text-muted-foreground hover:text-foreground"
+          >
+            Clear chat
+          </button>
+        )}
+      </div>
+
+      <div className="flex-1 space-y-3 overflow-auto pr-1">
         {messages.length === 0 && (
           <p className="neo-empty p-4 text-center text-xs font-bold text-muted-foreground">
-            Ask questions about this document.
+            Ask questions about this document. Your conversation is saved for this file.
           </p>
         )}
 
@@ -63,9 +97,7 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
           <div
             key={i}
             className={`max-w-[90%] rounded-neoLg border-2 border-border p-2.5 text-xs font-bold leading-relaxed shadow-neoSm ${
-              msg.role === "user"
-                ? "ml-auto bg-primary-soft"
-                : "mr-auto bg-surface"
+              msg.role === "user" ? "ml-auto bg-primary-soft" : "mr-auto bg-surface"
             }`}
           >
             {msg.content}
@@ -78,8 +110,12 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
           </div>
         )}
 
-        {error && (
-          <p className="rounded-md border-2 border-border bg-danger-soft px-3 py-2 text-center text-xs font-bold text-foreground">{error}</p>
+        {mutation.isError && (
+          <AIErrorRetry
+            message={getApiErrorMessage(mutation.error, "Failed to send message")}
+            onRetry={() => mutation.mutate({ fileId, messages })}
+            disabled={mutation.isPending || messages.length === 0}
+          />
         )}
 
         <div ref={bottomRef} />

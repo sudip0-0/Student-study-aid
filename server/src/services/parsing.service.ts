@@ -67,16 +67,63 @@ async function withDownloadedFile(
   }
 }
 
+export type FileContentExtraction = {
+  text: string | null;
+  html: string | null;
+};
+
+async function extractDocxBoth(filePath: string): Promise<FileContentExtraction> {
+  const mammoth = await import("mammoth");
+  const buffer = fs.readFileSync(filePath);
+  const [textResult, htmlResult] = await Promise.all([
+    mammoth.extractRawText({ buffer }),
+    mammoth.convertToHtml({ buffer }),
+  ]);
+  const text = stripExcessWhitespace(textResult.value);
+  const html = htmlResult.value.trim();
+  return {
+    text: text || null,
+    html: html || null,
+  };
+}
+
+export async function extractFileContent(fileType: string, url: string): Promise<FileContentExtraction> {
+  const ext = fileType === "pdf" ? ".pdf" : fileType === "docx" ? ".docx" : ".txt";
+  const tmpPath = path.join(process.cwd(), "tmp", `${crypto.randomUUID()}${ext}`);
+
+  fs.mkdirSync(path.dirname(tmpPath), { recursive: true });
+
+  try {
+    await downloadFile(url, tmpPath);
+
+    if (fileType === "pdf") {
+      const text = await extractPdfText(tmpPath);
+      return { text: text || null, html: null };
+    }
+    if (fileType === "docx") {
+      return extractDocxBoth(tmpPath);
+    }
+    const text = await extractTxtText(tmpPath);
+    return { text: text || null, html: null };
+  } catch (err) {
+    console.error("File parsing failed:", err);
+    return { text: null, html: null };
+  } finally {
+    try {
+      fs.unlinkSync(tmpPath);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+/** @deprecated Use extractFileContent via runFileExtraction */
 export async function parseFile(fileType: string, url: string): Promise<string | null> {
-  if (fileType === "pdf") {
-    return withDownloadedFile(fileType, url, extractPdfText);
-  }
-  if (fileType === "docx") {
-    return withDownloadedFile(fileType, url, extractDocxText);
-  }
-  return withDownloadedFile(fileType, url, extractTxtText);
+  const result = await extractFileContent(fileType, url);
+  return result.text;
 }
 
 export async function parseDocxHtml(url: string): Promise<string | null> {
-  return withDownloadedFile("docx", url, extractDocxHtml);
+  const result = await extractFileContent("docx", url);
+  return result.html;
 }

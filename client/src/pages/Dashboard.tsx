@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { useOutletContext } from "react-router-dom";
-import { Plus, Grid3X3, List, Search, FolderOpen, FileText } from "lucide-react";
+import { useOutletContext, Link } from "react-router-dom";
+import { Plus, Grid3X3, List, Search, FolderOpen, FileText, Clock } from "lucide-react";
 import FileGrid from "../components/files/FileGrid";
 import FileList from "../components/files/FileList";
 import FileUploader from "../components/files/FileUploader";
@@ -10,7 +10,7 @@ import Breadcrumb from "../components/layout/Breadcrumb";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useUIStore } from "../store/uiStore";
-import { useFiles, useFolders, useUpdateFile } from "../hooks";
+import { useFiles, useFolders, useUpdateFile, useAllFiles } from "../hooks";
 import type { File as FileType } from "../types";
 import type { FileTypeFilter } from "../components/files/FilterTabs";
 import type { SortOption } from "../components/files/SortDropdown";
@@ -35,10 +35,11 @@ export default function Dashboard() {
     activeFolderId: string | null;
     setActiveFolderId: (id: string | null) => void;
   }>();
-  const { viewMode, setViewMode } = useUIStore();
+  const { viewMode, setViewMode, recentFileIds } = useUIStore();
 
   const { data: files = [], isLoading } = useFiles(activeFolderId ?? undefined);
   const { data: folders = [] } = useFolders();
+  const { data: allFiles = [] } = useAllFiles();
 
   const [showUploader, setShowUploader] = useState(false);
   const [renamingFile, setRenamingFile] = useState<FileType | null>(null);
@@ -97,6 +98,21 @@ export default function Dashboard() {
 
   const activeFolder = folders.find((folder) => folder.id === activeFolderId);
 
+  const recentFiles = useMemo(
+    () =>
+      recentFileIds
+        .map((id) => allFiles.find((f) => f.id === id))
+        .filter((f): f is FileType => !!f),
+    [recentFileIds, allFiles]
+  );
+
+  const handleDropOnFolder = (e: React.DragEvent) => {
+    e.preventDefault();
+    const fileId = e.dataTransfer.getData("text/file-id");
+    if (!fileId) return;
+    updateFile.mutate({ id: fileId, folderId: activeFolderId });
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-5">
       <section className="app-panel overflow-hidden">
@@ -133,6 +149,26 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {recentFiles.length > 0 && !activeFolderId && (
+        <section className="app-panel p-4">
+          <p className="mb-2 flex items-center gap-1.5 font-mono text-xs font-extrabold uppercase text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            Recent study
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {recentFiles.map((file) => (
+              <Link
+                key={file.id}
+                to={`/study/${file.id}`}
+                className="rounded-md border-2 border-border bg-surface px-3 py-1.5 text-xs font-extrabold shadow-neoSm hover:bg-accent-soft"
+              >
+                {file.name}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="app-panel flex flex-col gap-3 p-3 md:flex-row md:items-center">
         <div className="relative flex-1 md:max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -165,11 +201,37 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {viewMode === "grid" ? (
-        <FileGrid files={filteredFiles} isLoading={isLoading} onRename={setRenamingFile} />
-      ) : (
-        <FileList files={filteredFiles} isLoading={isLoading} folderId={activeFolderId} onRename={setRenamingFile} />
-      )}
+      <div
+        className="min-h-[120px] rounded-neoLg border-2 border-dashed border-border p-1 transition-colors data-[drag=true]:border-primary data-[drag=true]:bg-primary-soft"
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.currentTarget.setAttribute("data-drag", "true");
+        }}
+        onDragLeave={(e) => {
+          e.currentTarget.removeAttribute("data-drag");
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.currentTarget.removeAttribute("data-drag");
+          handleDropOnFolder(e);
+        }}
+      >
+        {activeFolderId && (
+          <p className="mb-2 px-2 text-[10px] font-bold text-muted-foreground">
+            Drop files here to move into {activeFolder?.name ?? "this folder"}
+          </p>
+        )}
+        {viewMode === "grid" ? (
+          <FileGrid files={filteredFiles} isLoading={isLoading} onRename={setRenamingFile} />
+        ) : (
+          <FileList
+            files={filteredFiles}
+            isLoading={isLoading}
+            folderId={activeFolderId}
+            onRename={setRenamingFile}
+          />
+        )}
+      </div>
 
       {showUploader && (
         <FileUploader folderId={activeFolderId} onClose={() => setShowUploader(false)} />

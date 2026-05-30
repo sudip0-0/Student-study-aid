@@ -21,6 +21,8 @@ export async function createFileRecord(data: {
   url: string;
   userId: string;
   folderId?: string;
+  extractionStatus?: string;
+  extractedText?: string;
 }) {
   const [file] = await db.insert(files).values(data).returning();
   return file;

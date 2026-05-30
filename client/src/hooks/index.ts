@@ -10,6 +10,7 @@ import type {
   Quiz,
   FlashcardDeck,
 } from "../types";
+import { resolveExtractionStatus } from "../lib/studyStatus";
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return getApiErrorMessage(error, fallback);
@@ -58,20 +59,34 @@ export function useFile(id: string) {
     refetchInterval: (query) => {
       const file = query.state.data;
       if (!file || file.url === "") return false;
-      if (file.extractedText) return false;
+      const status = resolveExtractionStatus(file);
+      if (status === "ready" || status === "failed") return false;
       return 3000;
     },
   });
 }
 
-export function useDocxPreview(fileId: string, enabled: boolean) {
+export function useReparseFile(fileId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post(`/files/${fileId}/reparse`);
+      return data.data as { extractionStatus: string };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files", fileId] });
+    },
+  });
+}
+
+export function useDocxPreview(fileId: string, enabled: boolean, hasCachedHtml: boolean) {
   return useQuery<string>({
     queryKey: ["files", fileId, "docx-preview"],
     queryFn: async () => {
       const { data } = await api.get(`/files/${fileId}/docx-preview`);
       return data.data.html as string;
     },
-    enabled: enabled && !!fileId,
+    enabled: enabled && !!fileId && !hasCachedHtml,
     staleTime: 10 * 60 * 1000,
     retry: 1,
   });

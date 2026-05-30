@@ -25,6 +25,8 @@ export interface File {
   url: string;
   size: number;
   extractedText?: string | null;
+  extractedHtml?: string | null;
+  extractionStatus?: "pending" | "ready" | "failed";
   createdAt: string;
 }
 

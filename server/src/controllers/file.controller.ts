@@ -7,10 +7,8 @@ import {
   updateFile,
   deleteFileRecord,
 } from "../services/file.service";
-import { parseFile, parseDocxHtml } from "../services/parsing.service";
-import { db } from "../db/index";
-import { files } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { parseDocxHtml } from "../services/parsing.service";
+import { runFileExtraction } from "../services/extraction.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 
 const mimeByType = {
@@ -52,12 +50,32 @@ export const getDocxPreview = asyncHandler<AuthRequest>(async (req, res: Respons
     return res.status(400).json({ error: "File has no downloadable URL" });
   }
 
+  if (file.extractedHtml) {
+    return res.json({ data: { html: file.extractedHtml }, message: "DOCX preview retrieved" });
+  }
+
   const html = await parseDocxHtml(file.url);
   if (!html) {
     return res.status(422).json({ error: "Could not render a formatted preview for this document" });
   }
 
   res.json({ data: { html }, message: "DOCX preview generated" });
+});
+
+export const reparseFile = asyncHandler<AuthRequest>(async (req, res: Response) => {
+  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const file = await getFileById(req.params.id as string, req.user.id);
+  if (!file) return res.status(404).json({ error: "File not found" });
+  if (!file.url) {
+    return res.status(400).json({ error: "This file cannot be re-parsed" });
+  }
+
+  void runFileExtraction(file.id, req.user.id, file.type, file.url);
+
+  res.json({
+    data: { extractionStatus: "pending" as const },
+    message: "Text extraction started",
+  });
 });
 
 export const uploadFile = asyncHandler<AuthRequest>(async (req, res: Response) => {
@@ -86,15 +104,7 @@ export const uploadFile = asyncHandler<AuthRequest>(async (req, res: Response) =
     folderId: folderId || undefined,
   });
 
-  // Trigger text extraction in background
-  parseFile(type, url).then(async (text) => {
-    if (text) {
-      await db
-        .update(files)
-        .set({ extractedText: text })
-        .where(and(eq(files.id, file.id), eq(files.userId, userId)));
-    }
-  });
+  void runFileExtraction(file.id, userId, type, url);
 
   res.status(201).json({ data: file, message: "File uploaded" });
 });
@@ -137,6 +147,8 @@ export const createBlank = asyncHandler<AuthRequest>(async (req, res: Response) 
     url: "",
     userId: req.user.id,
     folderId: folderId || undefined,
+    extractionStatus: "ready",
+    extractedText: "",
   });
 
   res.status(201).json({ data: file, message: "Blank file created" });

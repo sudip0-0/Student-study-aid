@@ -3,6 +3,7 @@ import { Button } from "../ui/button";
 import { Loader2, ChevronLeft, ChevronRight, RotateCw, X } from "lucide-react";
 import { useFlashcards, useDeleteFlashcard } from "../../hooks";
 import { getApiErrorMessage } from "../../lib/api";
+import AIErrorRetry from "./AIErrorRetry";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { FlashcardDeck, Flashcard } from "../../types";
 
@@ -98,7 +99,9 @@ export default function FlashcardView({ fileId, mutation }: FlashcardViewProps) 
       </div>
 
       {mutation.isPending && <p className="text-xs text-muted-foreground">Generating flashcards...</p>}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <AIErrorRetry message={error} onRetry={handleGenerate} disabled={mutation.isPending} />
+      )}
 
       {savedDecks.length > 0 && (
         <div className="space-y-1.5">

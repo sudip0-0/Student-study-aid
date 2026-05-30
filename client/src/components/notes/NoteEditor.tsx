@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Trash2 } from "lucide-react";
+import MDEditor from "@uiw/react-md-editor";
 import { Button } from "../ui/button";
 import { useCreateNote, useUpdateNote, useDeleteNote } from "../../hooks";
 import type { Note } from "../../types";
+import "@uiw/react-md-editor/markdown-editor.css";
 
 interface NoteEditorProps {
   fileId: string;
@@ -41,8 +43,8 @@ export default function NoteEditor({ fileId, note, onCancel }: NoteEditorProps) 
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-2 shrink-0">
+    <div className="flex h-full flex-col" data-color-mode="light">
+      <div className="mb-2 flex shrink-0 items-center justify-between">
         <p className="font-mono text-xs font-bold text-muted-foreground">
           {isEditing ? "Edit note" : "New note"}
         </p>
@@ -62,24 +64,33 @@ export default function NoteEditor({ fileId, note, onCancel }: NoteEditorProps) 
         </div>
       </div>
 
-      <textarea
-        className="min-h-[200px] w-full flex-1 resize-none rounded-neoLg border-2 border-border bg-surface px-3 py-2 text-sm font-medium shadow-neoSm focus:outline-none"
-        placeholder="Write your notes here... (markdown supported)"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
+      <div className="min-h-[220px] flex-1 overflow-hidden rounded-neoLg border-2 border-border shadow-neoSm">
+        <MDEditor
+          value={content}
+          onChange={(value) => setContent(value || "")}
+          preview="edit"
+          height={220}
+          textareaProps={{ placeholder: "Write notes in Markdown…" }}
+        />
+      </div>
 
       {createNote.isError && (
-        <p className="text-xs text-destructive mt-1">{(createNote.error as Error)?.message || "Failed to create note."}</p>
+        <p className="mt-1 text-xs text-destructive">
+          {(createNote.error as Error)?.message || "Failed to create note."}
+        </p>
       )}
       {updateNote.isError && (
-        <p className="text-xs text-destructive mt-1">{(updateNote.error as Error)?.message || "Failed to update note."}</p>
+        <p className="mt-1 text-xs text-destructive">
+          {(updateNote.error as Error)?.message || "Failed to update note."}
+        </p>
       )}
       {deleteNote.isError && (
-        <p className="text-xs text-destructive mt-1">{(deleteNote.error as Error)?.message || "Failed to delete note."}</p>
+        <p className="mt-1 text-xs text-destructive">
+          {(deleteNote.error as Error)?.message || "Failed to delete note."}
+        </p>
       )}
 
-      <div className="flex items-center justify-end gap-2 mt-2 shrink-0">
+      <div className="mt-2 flex shrink-0 items-center justify-end gap-2">
         {onCancel && (
           <Button variant="outline" size="sm" onClick={onCancel}>
             Cancel

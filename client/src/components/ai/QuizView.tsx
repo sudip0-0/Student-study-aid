@@ -3,6 +3,7 @@ import { Button } from "../ui/button";
 import { Loader2, Check, X, ChevronLeft, ChevronDown } from "lucide-react";
 import { useSaveQuizAttempt, useQuizzesByFile, useDeleteQuiz } from "../../hooks";
 import { getApiErrorMessage } from "../../lib/api";
+import AIErrorRetry from "./AIErrorRetry";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { Quiz, QuizQuestion } from "../../types";
 
@@ -193,7 +194,9 @@ export default function QuizView({ fileId, mutation }: QuizViewProps) {
       {mutation.isPending && (
         <p className="text-xs text-muted-foreground">Generating quiz...</p>
       )}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <AIErrorRetry message={error} onRetry={handleGenerate} disabled={mutation.isPending} />
+      )}
 
       {savedQuizzes.length > 0 && (
         <div className="space-y-1.5">
