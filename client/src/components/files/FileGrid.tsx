@@ -13,7 +13,7 @@ export default function FileGrid({ files, isLoading, onRename }: FileGridProps) 
   const navigate = useNavigate();
 
   const handleSelect = (file: FileType) => {
-    navigate(`/study/${file.id}`);
+    navigate(`/app/study/${file.id}`);
   };
 
   if (isLoading) {

@@ -6,6 +6,7 @@ export { highlights } from "./highlights";
 export { quizzes } from "./quizzes";
 export { flashcards } from "./flashcards";
 export { cheatsheets } from "./cheatsheets";
+export { chatMessages } from "./chatMessages";
 export {
   usersRelations,
   foldersRelations,
@@ -14,4 +15,5 @@ export {
   highlightsRelations,
   quizzesRelations,
   flashcardsRelations,
+  chatMessagesRelations,
 } from "./relations";

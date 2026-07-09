@@ -7,6 +7,7 @@ import FileUploader from "../components/files/FileUploader";
 import FilterTabs from "../components/files/FilterTabs";
 import SortDropdown from "../components/files/SortDropdown";
 import Breadcrumb from "../components/layout/Breadcrumb";
+import SetupChecklist from "../components/onboarding/SetupChecklist";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useUIStore } from "../store/uiStore";
@@ -149,6 +150,10 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {!activeFolderId && (
+        <SetupChecklist onUploadClick={() => setShowUploader(true)} />
+      )}
+
       {recentFiles.length > 0 && !activeFolderId && (
         <section className="app-panel p-4">
           <p className="mb-2 flex items-center gap-1.5 font-mono text-xs font-extrabold uppercase text-muted-foreground">
@@ -159,7 +164,7 @@ export default function Dashboard() {
             {recentFiles.map((file) => (
               <Link
                 key={file.id}
-                to={`/study/${file.id}`}
+                to={`/app/study/${file.id}`}
                 className="rounded-md border-2 border-border bg-surface px-3 py-1.5 text-xs font-extrabold shadow-neoSm hover:bg-accent-soft"
               >
                 {file.name}

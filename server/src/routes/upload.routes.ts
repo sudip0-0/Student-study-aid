@@ -4,6 +4,7 @@ import { UTApi } from "uploadthing/server";
 import { z } from "zod";
 import { asyncHandler } from "../utils/asyncHandler";
 import { createFileRecord } from "../services/file.service";
+import { assertFolderOwnedByUser } from "../services/folder.service";
 import { runFileExtraction } from "../services/extraction.service";
 import { AuthRequest, authMiddleware } from "../middleware/auth.middleware";
 
@@ -37,23 +38,42 @@ function sanitizeFileName(name: string) {
   return name.replace(/[^a-zA-Z0-9.\-_ ]/g, "_");
 }
 
-function fileFromDataUrl(dataUrl: string, name: string, mimeType: string) {
+/** Canonical MIME, or octet-stream for .docx (common from Windows/Office). */
+function isAllowedMime(declared: string, type: keyof typeof mimeByType, fileName: string): boolean {
+  const normalized = declared.toLowerCase();
+  if (normalized === mimeByType[type]) return true;
+  if (
+    type === "docx" &&
+    normalized === "application/octet-stream" &&
+    fileName.toLowerCase().endsWith(".docx")
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function fileFromDataUrl(dataUrl: string, name: string, type: keyof typeof mimeByType) {
   const match = /^data:([^;,]+);base64,(.+)$/.exec(dataUrl);
   if (!match) throw Object.assign(new Error("Invalid file payload"), { statusCode: 400 });
-  if (match[1] !== mimeType) {
+  if (!isAllowedMime(match[1], type, name)) {
     throw Object.assign(new Error("File MIME type does not match file type"), { statusCode: 400 });
   }
 
+  const canonicalMime = mimeByType[type];
   const bytes = Buffer.from(match[2], "base64");
-  const blob = new Blob([bytes], { type: mimeType });
+  const blob = new Blob([bytes], { type: canonicalMime });
   return Object.assign(blob, { name, lastModified: Date.now() });
 }
 
-async function validateRemoteMime(url: string, type: keyof typeof mimeByType): Promise<boolean> {
+async function validateRemoteMime(
+  url: string,
+  type: keyof typeof mimeByType,
+  fileName: string
+): Promise<boolean> {
   const response = await fetch(url, { method: "HEAD" });
   if (!response.ok) return false;
-  const contentType = response.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
-  return contentType === mimeByType[type];
+  const contentType = response.headers.get("content-type")?.split(";")[0].trim().toLowerCase() ?? "";
+  return isAllowedMime(contentType, type, fileName);
 }
 
 uploadRouter.post("/file", authMiddleware, asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -63,8 +83,10 @@ uploadRouter.post("/file", authMiddleware, asyncHandler(async (req: AuthRequest,
   if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
 
   const { name, type, size, folderId, dataUrl } = result.data;
+  await assertFolderOwnedByUser(folderId, req.user.id);
+
   const sanitizedName = sanitizeFileName(name);
-  const uploadFile = fileFromDataUrl(dataUrl, sanitizedName, mimeByType[type]);
+  const uploadFile = fileFromDataUrl(dataUrl, sanitizedName, type);
   const uploaded = await utapi.uploadFiles(uploadFile);
 
   if (uploaded.error || !uploaded.data) {
@@ -99,9 +121,11 @@ uploadRouter.post("/uploadthing", asyncHandler(async (req: Request, res: Respons
   if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
   const { name, type, url, size, userId, folderId } = result.data;
 
-  if (!(await validateRemoteMime(url, type))) {
+  if (!(await validateRemoteMime(url, type, name))) {
     return res.status(400).json({ error: "File MIME type does not match file type" });
   }
+
+  await assertFolderOwnedByUser(folderId, userId);
 
   const file = await createFileRecord({
     name: sanitizeFileName(name),

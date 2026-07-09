@@ -27,6 +27,8 @@ export interface File {
   extractedText?: string | null;
   extractedHtml?: string | null;
   extractionStatus?: "pending" | "ready" | "failed";
+  lastSummary?: string | null;
+  lastSummaryLength?: "short" | "medium" | "long" | string | null;
   createdAt: string;
 }
 

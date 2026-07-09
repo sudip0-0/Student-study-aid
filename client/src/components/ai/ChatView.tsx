@@ -4,6 +4,7 @@ import { Loader2, Send } from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { ChatMessage } from "../../types";
 import { getApiErrorMessage } from "../../lib/api";
+import { useAppendChatMessages, useChatHistory, useClearChatHistory } from "../../hooks";
 import AIErrorRetry from "./AIErrorRetry";
 
 interface ChatViewProps {
@@ -11,11 +12,11 @@ interface ChatViewProps {
   mutation: UseMutationResult<string, Error, { fileId: string; messages: ChatMessage[] }>;
 }
 
-const chatStorageKey = (fileId: string) => `lumio:chat:${fileId}`;
+const legacyChatKey = (fileId: string) => `lumio:chat:${fileId}`;
 
-function loadStoredMessages(fileId: string): ChatMessage[] {
+function loadLegacyMessages(fileId: string): ChatMessage[] {
   try {
-    const raw = localStorage.getItem(chatStorageKey(fileId));
+    const raw = localStorage.getItem(legacyChatKey(fileId));
     if (!raw) return [];
     const parsed = JSON.parse(raw) as ChatMessage[];
     return Array.isArray(parsed) ? parsed : [];
@@ -25,17 +26,44 @@ function loadStoredMessages(fileId: string): ChatMessage[] {
 }
 
 export default function ChatView({ fileId, mutation }: ChatViewProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadStoredMessages(fileId));
+  const { data: serverMessages, isLoading: historyLoading } = useChatHistory(fileId);
+  const appendMessages = useAppendChatMessages();
+  const clearHistory = useClearChatHistory();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [hydrated, setHydrated] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const migratedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    setMessages(loadStoredMessages(fileId));
+    setHydrated(false);
+    setMessages([]);
+    migratedRef.current = null;
   }, [fileId]);
 
   useEffect(() => {
-    localStorage.setItem(chatStorageKey(fileId), JSON.stringify(messages));
-  }, [fileId, messages]);
+    if (historyLoading || hydrated) return;
+
+    if (serverMessages && serverMessages.length > 0) {
+      setMessages(serverMessages);
+      localStorage.removeItem(legacyChatKey(fileId));
+      setHydrated(true);
+      return;
+    }
+
+    const legacy = loadLegacyMessages(fileId);
+    if (legacy.length > 0 && migratedRef.current !== fileId) {
+      migratedRef.current = fileId;
+      setMessages(legacy);
+      appendMessages.mutate(
+        { fileId, messages: legacy },
+        {
+          onSuccess: () => localStorage.removeItem(legacyChatKey(fileId)),
+        }
+      );
+    }
+    setHydrated(true);
+  }, [fileId, historyLoading, serverMessages, hydrated, appendMessages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -54,7 +82,12 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
       { fileId, messages: updatedMessages },
       {
         onSuccess: (reply) => {
-          setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+          const assistantMsg: ChatMessage = { role: "assistant", content: reply };
+          setMessages((prev) => [...prev, assistantMsg]);
+          appendMessages.mutate({
+            fileId,
+            messages: [userMsg, assistantMsg],
+          });
         },
       }
     );
@@ -69,7 +102,8 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
 
   const handleClear = () => {
     setMessages([]);
-    localStorage.removeItem(chatStorageKey(fileId));
+    localStorage.removeItem(legacyChatKey(fileId));
+    clearHistory.mutate(fileId);
   };
 
   return (
@@ -87,7 +121,11 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
       </div>
 
       <div className="flex-1 space-y-3 overflow-auto pr-1">
-        {messages.length === 0 && (
+        {historyLoading && !hydrated && (
+          <p className="p-4 text-center text-xs font-bold text-muted-foreground">Loading chat...</p>
+        )}
+
+        {hydrated && messages.length === 0 && (
           <p className="neo-empty p-4 text-center text-xs font-bold text-muted-foreground">
             Ask questions about this document. Your conversation is saved for this file.
           </p>
@@ -95,7 +133,7 @@ export default function ChatView({ fileId, mutation }: ChatViewProps) {
 
         {messages.map((msg, i) => (
           <div
-            key={i}
+            key={`${msg.role}-${i}-${msg.content.slice(0, 12)}`}
             className={`max-w-[90%] rounded-neoLg border-2 border-border p-2.5 text-xs font-bold leading-relaxed shadow-neoSm ${
               msg.role === "user" ? "ml-auto bg-primary-soft" : "mr-auto bg-surface"
             }`}

@@ -1,26 +1,57 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Loader2, Copy, RotateCcw } from "lucide-react";
 import { getApiErrorMessage } from "../../lib/api";
+import { AI_DOC_CHAR_LIMIT, isAiTextTruncated } from "../../lib/aiLimits";
 import { toast } from "sonner";
 import type { UseMutationResult } from "@tanstack/react-query";
+import type { File } from "../../types";
 
 interface SummaryViewProps {
   fileId: string;
-  mutation: UseMutationResult<string, Error, { fileId: string; length?: "short" | "medium" | "long" }>;
+  file: File;
+  mutation: UseMutationResult<
+    {
+      summary: string;
+      length: "short" | "medium" | "long";
+      truncated: boolean;
+      charLimit: number;
+    },
+    Error,
+    { fileId: string; length?: "short" | "medium" | "long" }
+  >;
 }
 
-export default function SummaryView({ fileId, mutation }: SummaryViewProps) {
-  const [length, setLength] = useState<"short" | "medium" | "long">("medium");
-  const [result, setResult] = useState<string | null>(null);
+export default function SummaryView({ fileId, file, mutation }: SummaryViewProps) {
+  const initialLength =
+    file.lastSummaryLength === "short" ||
+    file.lastSummaryLength === "medium" ||
+    file.lastSummaryLength === "long"
+      ? file.lastSummaryLength
+      : "medium";
+
+  const [length, setLength] = useState<"short" | "medium" | "long">(initialLength);
+  const [result, setResult] = useState<string | null>(file.lastSummary ?? null);
   const [error, setError] = useState<string | null>(null);
+  const truncated = isAiTextTruncated(file.extractedText);
+
+  useEffect(() => {
+    setResult(file.lastSummary ?? null);
+    if (
+      file.lastSummaryLength === "short" ||
+      file.lastSummaryLength === "medium" ||
+      file.lastSummaryLength === "long"
+    ) {
+      setLength(file.lastSummaryLength);
+    }
+  }, [file.id, file.lastSummary, file.lastSummaryLength]);
 
   const handleGenerate = () => {
     setError(null);
     mutation.mutate(
       { fileId, length },
       {
-        onSuccess: (data) => setResult(data),
+        onSuccess: (data) => setResult(data.summary),
         onError: (err: Error) => {
           setError(getApiErrorMessage(err, "Failed to generate summary"));
         },
@@ -40,6 +71,12 @@ export default function SummaryView({ fileId, mutation }: SummaryViewProps) {
 
   return (
     <div className="space-y-3">
+      {truncated && (
+        <p className="rounded-md border-2 border-border bg-warning-soft px-3 py-2 text-xs font-bold text-foreground">
+          This document is long. AI will use the first ~{AI_DOC_CHAR_LIMIT.toLocaleString()} characters.
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <label htmlFor="summary-length" className="sr-only">
           Summary length
@@ -64,7 +101,7 @@ export default function SummaryView({ fileId, mutation }: SummaryViewProps) {
           {mutation.isPending ? (
             <Loader2 className="h-3 w-3 animate-spin mr-1" />
           ) : null}
-          Generate
+          {result ? "Regenerate" : "Generate"}
         </Button>
       </div>
 

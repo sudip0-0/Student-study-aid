@@ -101,7 +101,7 @@ export async function extractFileContent(fileType: string, url: string): Promise
       return { text: text || null, html: null };
     }
     if (fileType === "docx") {
-      return extractDocxBoth(tmpPath);
+      return await extractDocxBoth(tmpPath);
     }
     const text = await extractTxtText(tmpPath);
     return { text: text || null, html: null };
@@ -115,12 +115,6 @@ export async function extractFileContent(fileType: string, url: string): Promise
       /* ignore */
     }
   }
-}
-
-/** @deprecated Use extractFileContent via runFileExtraction */
-export async function parseFile(fileType: string, url: string): Promise<string | null> {
-  const result = await extractFileContent(fileType, url);
-  return result.text;
 }
 
 export async function parseDocxHtml(url: string): Promise<string | null> {

@@ -15,5 +15,7 @@ export const files = pgTable("files", {
   extractedText: text("extracted_text"),
   extractedHtml: text("extracted_html"),
   extractionStatus: text("extraction_status").notNull().default("pending"),
+  lastSummary: text("last_summary"),
+  lastSummaryLength: text("last_summary_length"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });

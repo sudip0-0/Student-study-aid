@@ -13,6 +13,7 @@ import CheatsheetView from "./CheatsheetView";
 import ChatView from "./ChatView";
 import AIStudyGate from "./AIStudyGate";
 import { cn } from "../../lib/utils";
+import { AI_DOC_CHAR_LIMIT, isAiTextTruncated } from "../../lib/aiLimits";
 import type { File } from "../../types";
 
 interface AIPanelProps {
@@ -33,6 +34,7 @@ const TABS: { key: AITab; label: string }[] = [
 
 export default function AIPanel({ fileId, file, hasApiKey }: AIPanelProps) {
   const [activeTab, setActiveTab] = useState<AITab>("summary");
+  const showTruncation = isAiTextTruncated(file.extractedText);
 
   const summarizeMutation = useSummarize();
   const quizMutation = useGenerateQuiz();
@@ -43,6 +45,11 @@ export default function AIPanel({ fileId, file, hasApiKey }: AIPanelProps) {
   return (
     <AIStudyGate file={file} hasApiKey={hasApiKey}>
       <div className="flex h-full flex-col">
+        {showTruncation && activeTab !== "summary" && (
+          <p className="mb-2 shrink-0 rounded-md border-2 border-border bg-warning-soft px-3 py-2 text-[11px] font-bold text-foreground">
+            Long document: AI uses the first ~{AI_DOC_CHAR_LIMIT.toLocaleString()} characters.
+          </p>
+        )}
         <div className="flex shrink-0 gap-1 overflow-x-auto rounded-neoLg border-2 border-border bg-surface-muted p-1">
           {TABS.map((tab) => (
             <button
@@ -63,7 +70,7 @@ export default function AIPanel({ fileId, file, hasApiKey }: AIPanelProps) {
 
         <div className="flex-1 overflow-auto p-3">
           {activeTab === "summary" && (
-            <SummaryView fileId={fileId} mutation={summarizeMutation} />
+            <SummaryView fileId={fileId} file={file} mutation={summarizeMutation} />
           )}
           {activeTab === "quiz" && <QuizView fileId={fileId} mutation={quizMutation} />}
           {activeTab === "flashcards" && (

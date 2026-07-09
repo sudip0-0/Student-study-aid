@@ -29,11 +29,11 @@ export default function AppShell() {
   const awaitingGoRef = useRef(false);
   const goTimerRef = useRef<number | null>(null);
   const { theme, setTheme } = useTheme();
-  const pageTitle = location.pathname.startsWith("/study/")
+  const pageTitle = location.pathname.startsWith("/app/study/")
     ? "Study"
-    : location.pathname === "/quizzes"
+    : location.pathname === "/app/quizzes"
       ? "Quizzes"
-      : location.pathname === "/settings"
+      : location.pathname === "/app/settings"
         ? "Settings"
         : "Dashboard";
 
@@ -57,7 +57,7 @@ export default function AppShell() {
 
       const key = e.key.toLowerCase();
       if (awaitingGoRef.current) {
-        const destinations: Record<string, string> = { d: "/", q: "/quizzes", s: "/settings" };
+        const destinations: Record<string, string> = { d: "/app", q: "/app/quizzes", s: "/app/settings" };
         const destination = destinations[key];
         awaitingGoRef.current = false;
         if (goTimerRef.current) window.clearTimeout(goTimerRef.current);
@@ -87,10 +87,14 @@ export default function AppShell() {
 
   useEffect(() => {
     const titles: Record<string, string> = {
-      "/": "Dashboard — Lumio",
+      "/app": "Dashboard — Lumio",
+      "/app/quizzes": "Quizzes — Lumio",
+      "/app/settings": "Settings — Lumio",
     };
     const path = location.pathname;
-    const title = titles[path] || (path.startsWith("/study/") ? "Study — Lumio" : path === "/quizzes" ? "Quizzes — Lumio" : path === "/settings" ? "Settings — Lumio" : "Lumio");
+    const title =
+      titles[path] ||
+      (path.startsWith("/app/study/") ? "Study — Lumio" : "Lumio");
     document.title = title;
   }, [location.pathname]);
 
@@ -113,8 +117,8 @@ export default function AppShell() {
     );
   }
 
-  if (!user && location.pathname !== "/login" && location.pathname !== "/register") {
-    return <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -228,7 +232,7 @@ export default function AppShell() {
             </div>
           </div>
         )}
-        <main className={cn("flex-1 overflow-hidden", location.pathname.startsWith("/study/") ? "" : "overflow-auto p-4 lg:p-6")}>
+        <main className={cn("flex-1 overflow-hidden", location.pathname.startsWith("/app/study/") ? "" : "overflow-auto p-4 lg:p-6")}>
           <Outlet context={{ activeFolderId, setActiveFolderId }} />
         </main>
       </div>

@@ -1,4 +1,4 @@
-import { truncateText } from "../utils/truncateText";
+import { truncateText, AI_DOC_CHAR_LIMIT } from "../utils/truncateText";
 
 export function summarizePrompt(text: string, length: "short" | "medium" | "long" = "medium") {
   const bulletCount = length === "short" ? "5" : length === "medium" ? "10" : "15+";
@@ -7,7 +7,7 @@ export function summarizePrompt(text: string, length: "short" | "medium" | "long
 Return ONLY the summary — no preamble, no "Here is a summary..." intro.
 Use bullet points. Length: ${length} (${bulletCount} bullets).
 Base your response ONLY on the provided content. Do not add any information not found in the document.`,
-    user: `Document content:\n\n${truncateText(text, 12000)}`,
+    user: `Document content:\n\n${truncateText(text, AI_DOC_CHAR_LIMIT)}`,
   };
 }
 
@@ -18,7 +18,7 @@ Respond ONLY with valid JSON. No markdown, no explanation, no preamble.
 Base questions ONLY on the provided document content. Do not hallucinate.
 Format: { "questions": [{ "question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..." }] }
 Each question must have exactly 4 options and one correct answer. Include a brief explanation for each.`,
-    user: `Document content:\n\n${truncateText(text, 12000)}`,
+    user: `Document content:\n\n${truncateText(text, AI_DOC_CHAR_LIMIT)}`,
   };
 }
 
@@ -29,7 +29,7 @@ Respond ONLY with valid JSON. No markdown, no explanation, no preamble.
 Base cards ONLY on the provided document content. Do not hallucinate.
 Format: { "cards": [{ "front": "...", "back": "..." }] }
 Front should be a question or term. Back should be the answer or definition.`,
-    user: `Document content:\n\n${truncateText(text, 12000)}`,
+    user: `Document content:\n\n${truncateText(text, AI_DOC_CHAR_LIMIT)}`,
   };
 }
 
@@ -40,7 +40,7 @@ Return ONLY JSON. No markdown, no preamble, no explanation.
 Base content ONLY on the provided document. Do not hallucinate.
 Format: { "sections": [{ "title": "...", "points": ["...", "..."] }] }
 Organize content into logical sections. Each section should have 3-7 bullet points.`,
-    user: `Document content:\n\n${truncateText(text, 12000)}`,
+    user: `Document content:\n\n${truncateText(text, AI_DOC_CHAR_LIMIT)}`,
   };
 }
 
@@ -61,7 +61,7 @@ Be concise and accurate. Use bullet points for lists when helpful.`;
 
   const messages = [
     { role: "system" as const, content: system },
-    { role: "user" as const, content: `Document content:\n\n${truncateText(text, 12000)}` },
+    { role: "user" as const, content: `Document content:\n\n${truncateText(text, AI_DOC_CHAR_LIMIT)}` },
     { role: "assistant" as const, content: "I've read the document. Ask me anything about it." },
     ...history,
   ];

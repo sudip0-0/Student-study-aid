@@ -6,6 +6,7 @@ import { notes } from "./notes";
 import { highlights } from "./highlights";
 import { quizzes } from "./quizzes";
 import { flashcards } from "./flashcards";
+import { chatMessages } from "./chatMessages";
 
 export const usersRelations = relations(users, ({ many }) => ({
   folders: many(folders),
@@ -14,6 +15,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   highlights: many(highlights),
   quizzes: many(quizzes),
   flashcards: many(flashcards),
+  chatMessages: many(chatMessages),
 }));
 
 export const foldersRelations = relations(folders, ({ one, many }) => ({
@@ -30,6 +32,7 @@ export const filesRelations = relations(files, ({ one, many }) => ({
   highlights: many(highlights),
   quizzes: many(quizzes),
   flashcards: many(flashcards),
+  chatMessages: many(chatMessages),
 }));
 
 export const notesRelations = relations(notes, ({ one }) => ({
@@ -50,4 +53,9 @@ export const quizzesRelations = relations(quizzes, ({ one }) => ({
 export const flashcardsRelations = relations(flashcards, ({ one }) => ({
   user: one(users, { fields: [flashcards.userId], references: [users.id] }),
   file: one(files, { fields: [flashcards.fileId], references: [files.id] }),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  user: one(users, { fields: [chatMessages.userId], references: [users.id] }),
+  file: one(files, { fields: [chatMessages.fileId], references: [files.id] }),
 }));

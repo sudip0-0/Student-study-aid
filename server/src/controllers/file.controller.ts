@@ -1,4 +1,5 @@
 import { Response } from "express";
+import { UTApi } from "uploadthing/server";
 import { asyncHandler } from "../utils/asyncHandler";
 import {
   getFileById,
@@ -7,21 +8,17 @@ import {
   updateFile,
   deleteFileRecord,
 } from "../services/file.service";
+import { assertFolderOwnedByUser } from "../services/folder.service";
 import { parseDocxHtml } from "../services/parsing.service";
 import { runFileExtraction } from "../services/extraction.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 
-const mimeByType = {
-  pdf: "application/pdf",
-  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  txt: "text/plain",
-} satisfies Record<string, string>;
+const utapi = new UTApi();
 
-async function validateRemoteMime(url: string, type: keyof typeof mimeByType): Promise<boolean> {
-  const response = await fetch(url, { method: "HEAD" });
-  if (!response.ok) return false;
-  const contentType = response.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
-  return contentType === mimeByType[type];
+function uploadThingKeyFromUrl(url: string): string | null {
+  if (!url) return null;
+  const key = url.split("/").pop();
+  return key || null;
 }
 
 export const listFiles = asyncHandler<AuthRequest>(async (req, res: Response) => {
@@ -59,6 +56,11 @@ export const getDocxPreview = asyncHandler<AuthRequest>(async (req, res: Respons
     return res.status(422).json({ error: "Could not render a formatted preview for this document" });
   }
 
+  await updateFile(file.id, req.user.id, {
+    extractedHtml: html,
+    extractionStatus: "ready",
+  });
+
   res.json({ data: { html }, message: "DOCX preview generated" });
 });
 
@@ -78,37 +80,6 @@ export const reparseFile = asyncHandler<AuthRequest>(async (req, res: Response) 
   });
 });
 
-export const uploadFile = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const userId = req.user.id;
-  const { name, type, url, size, folderId } = req.body;
-
-  if (!name || !type || !url) {
-    return res.status(400).json({ error: "name, type, and url are required" });
-  }
-
-  if (!["pdf", "docx", "txt"].includes(type)) {
-    return res.status(400).json({ error: "Invalid file type. Must be pdf, docx, or txt" });
-  }
-
-  if (!(await validateRemoteMime(url, type))) {
-    return res.status(400).json({ error: "File MIME type does not match file type" });
-  }
-
-  const file = await createFileRecord({
-    name: name.replace(/[^a-zA-Z0-9.\-_ ]/g, "_"),
-    type,
-    size: size || 0,
-    url,
-    userId,
-    folderId: folderId || undefined,
-  });
-
-  void runFileExtraction(file.id, userId, type, url);
-
-  res.status(201).json({ data: file, message: "File uploaded" });
-});
-
 export const patchFile = asyncHandler<AuthRequest>(async (req, res: Response) => {
   if (!req.user) return res.status(401).json({ error: "Unauthorized" });
   const userId = req.user.id;
@@ -116,6 +87,10 @@ export const patchFile = asyncHandler<AuthRequest>(async (req, res: Response) =>
 
   const file = await getFileById(req.params.id as string, userId);
   if (!file) return res.status(404).json({ error: "File not found" });
+
+  if (folderId !== undefined && folderId !== null) {
+    await assertFolderOwnedByUser(folderId, userId);
+  }
 
   const updated = await updateFile(req.params.id as string, userId, {
     name,
@@ -133,12 +108,22 @@ export const removeFile = asyncHandler<AuthRequest>(async (req, res: Response) =
   if (!file) return res.status(404).json({ error: "File not found" });
 
   await deleteFileRecord(req.params.id as string, userId);
+
+  const key = uploadThingKeyFromUrl(file.url);
+  if (key) {
+    await utapi.deleteFiles(key).catch((err: unknown) => {
+      console.error("UploadThing delete failed after DB delete:", err);
+    });
+  }
+
   res.json({ message: "File deleted" });
 });
 
 export const createBlank = asyncHandler<AuthRequest>(async (req, res: Response) => {
   if (!req.user) return res.status(401).json({ error: "Unauthorized" });
   const { name, folderId } = req.body;
+
+  await assertFolderOwnedByUser(folderId || undefined, req.user.id);
 
   const file = await createFileRecord({
     name: name.replace(/[^a-zA-Z0-9.\-_ ]/g, "_"),

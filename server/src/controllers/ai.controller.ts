@@ -14,6 +14,7 @@ import { db } from "../db/index";
 import { users, files, quizzes, flashcards, cheatsheets } from "../db/schema";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { decryptSecret } from "../utils/encrypt";
+import { AI_DOC_CHAR_LIMIT, isAiTextTruncated } from "../utils/truncateText";
 
 const summarizeSchema = z.object({
   fileId: z.string().uuid(),
@@ -76,10 +77,25 @@ async function getFileText(fileId: string, userId: string): Promise<string> {
 export const summarizeDoc = asyncHandler<AuthRequest>(async (req, res: Response) => {
   if (!req.user) return res.status(401).json({ error: "Unauthorized" });
   const { fileId, length } = parseBody(summarizeSchema, req.body);
+  const summaryLength = length || "medium";
   const text = await getFileText(fileId, req.user.id);
   const { apiKey, aiModel } = await getAiSettings(req.user.id);
-  const data = await summarize(apiKey, aiModel, text, length || "medium");
-  res.json({ data, message: "Summary generated" });
+  const summary = await summarize(apiKey, aiModel, text, summaryLength);
+
+  await db
+    .update(files)
+    .set({ lastSummary: summary, lastSummaryLength: summaryLength })
+    .where(and(eq(files.id, fileId), eq(files.userId, req.user.id)));
+
+  res.json({
+    data: {
+      summary,
+      length: summaryLength,
+      truncated: isAiTextTruncated(text),
+      charLimit: AI_DOC_CHAR_LIMIT,
+    },
+    message: "Summary generated",
+  });
 });
 
 export const quizDoc = asyncHandler<AuthRequest>(async (req, res: Response) => {

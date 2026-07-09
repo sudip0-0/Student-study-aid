@@ -28,7 +28,19 @@ export async function createFileRecord(data: {
   return file;
 }
 
-export async function updateFile(fileId: string, userId: string, updates: { name?: string; folderId?: string | null; extractedText?: string }) {
+export async function updateFile(
+  fileId: string,
+  userId: string,
+  updates: {
+    name?: string;
+    folderId?: string | null;
+    extractedText?: string;
+    extractedHtml?: string | null;
+    extractionStatus?: string;
+    lastSummary?: string | null;
+    lastSummaryLength?: string | null;
+  }
+) {
   const [file] = await db.update(files).set(updates).where(and(eq(files.id, fileId), eq(files.userId, userId))).returning();
   return file;
 }

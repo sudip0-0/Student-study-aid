@@ -21,6 +21,8 @@ function resolveFileType(file: File): "pdf" | "docx" | "txt" | null {
   if (byMime) return byMime;
 
   const name = file.name.toLowerCase();
+  // Windows/Office often sends DOCX as application/octet-stream
+  if (file.type === "application/octet-stream" && name.endsWith(".docx")) return "docx";
   if (name.endsWith(".pdf")) return "pdf";
   if (name.endsWith(".docx")) return "docx";
   if (name.endsWith(".txt")) return "txt";

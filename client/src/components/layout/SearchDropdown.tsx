@@ -42,7 +42,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
       {data?.files.map((file) => (
         <Link
           key={file.id}
-          to={`/study/${file.id}`}
+          to={`/app/study/${file.id}`}
           onClick={onClose}
           className="flex items-center gap-2 border-b-2 border-border px-3 py-2 text-sm font-bold transition-colors hover:bg-accent"
         >
@@ -57,7 +57,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
       {data?.notes.map((note) => (
         <Link
           key={note.id}
-          to={`/study/${note.fileId}`}
+          to={`/app/study/${note.fileId}`}
           onClick={onClose}
           className="flex items-center gap-2 border-b-2 border-border px-3 py-2 text-sm font-bold transition-colors hover:bg-accent"
         >

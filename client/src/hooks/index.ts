@@ -9,6 +9,7 @@ import type {
   Note,
   Quiz,
   FlashcardDeck,
+  ChatMessage,
 } from "../types";
 import { resolveExtractionStatus } from "../lib/studyStatus";
 
@@ -142,6 +143,7 @@ export function useDeleteFolder() {
 }
 
 export function useSummarize() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
       fileId,
@@ -151,7 +153,16 @@ export function useSummarize() {
       length?: "short" | "medium" | "long";
     }) => {
       const { data } = await api.post("/ai/summarize", { fileId, length });
-      return data.data as string;
+      return data.data as {
+        summary: string;
+        length: "short" | "medium" | "long";
+        truncated: boolean;
+        charLimit: number;
+      };
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["file", variables.fileId] });
+      queryClient.invalidateQueries({ queryKey: ["files"] });
     },
   });
 }
@@ -221,6 +232,48 @@ export function useChat() {
     }) => {
       const { data } = await api.post("/ai/chat", { fileId, messages });
       return data.data as string;
+    },
+  });
+}
+
+export function useChatHistory(fileId: string) {
+  return useQuery<ChatMessage[]>({
+    queryKey: ["chat", fileId],
+    queryFn: async () => {
+      const { data } = await api.get(`/chat/file/${fileId}`);
+      return data.data as ChatMessage[];
+    },
+    enabled: !!fileId,
+  });
+}
+
+export function useAppendChatMessages() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      fileId,
+      messages,
+    }: {
+      fileId: string;
+      messages: { role: "user" | "assistant"; content: string }[];
+    }) => {
+      const { data } = await api.post(`/chat/file/${fileId}`, { messages });
+      return data.data as ChatMessage[];
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["chat", variables.fileId] });
+    },
+  });
+}
+
+export function useClearChatHistory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (fileId: string) => {
+      await api.delete(`/chat/file/${fileId}`);
+    },
+    onSuccess: (_data, fileId) => {
+      queryClient.invalidateQueries({ queryKey: ["chat", fileId] });
     },
   });
 }

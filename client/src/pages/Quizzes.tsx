@@ -74,7 +74,7 @@ export default function Quizzes() {
           <div>
             <h2 className="font-heading text-2xl font-black">{activeQuiz.title}</h2>
             <Link
-              to={`/study/${activeQuiz.fileId}`}
+              to={`/app/study/${activeQuiz.fileId}`}
               className="text-xs font-bold text-muted-foreground hover:underline"
             >
               View source document

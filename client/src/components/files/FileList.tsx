@@ -86,7 +86,7 @@ export default function FileList({ files, isLoading, folderId, onRename }: FileL
             <div key={file.id} className="p-3">
               <div className="flex items-start gap-3">
                 <button
-                  onClick={() => navigate(`/study/${file.id}`)}
+                  onClick={() => navigate(`/app/study/${file.id}`)}
                   className="flex min-w-0 flex-1 items-start gap-3 text-left"
                 >
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border-2 border-border bg-accent-soft shadow-neoSm">
@@ -174,7 +174,7 @@ export default function FileList({ files, isLoading, folderId, onRename }: FileL
               <tr key={file.id} className="border-b-2 border-border transition-colors hover:bg-accent-soft">
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => navigate(`/study/${file.id}`)}
+                    onClick={() => navigate(`/app/study/${file.id}`)}
                     className="flex items-center gap-2 font-bold transition-colors hover:text-primary"
                   >
                     <Icon className={cn("h-4 w-4 shrink-0", typeColors[file.type] || "text-muted-foreground")} />

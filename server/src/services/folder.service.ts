@@ -28,12 +28,26 @@ export async function getFolderById(folderId: string, userId: string) {
   });
 }
 
+/** Ensures folderId belongs to userId. No-op when folderId is null/undefined. Throws 404 if missing. */
+export async function assertFolderOwnedByUser(
+  folderId: string | null | undefined,
+  userId: string
+): Promise<void> {
+  if (folderId === null || folderId === undefined) return;
+  const folder = await getFolderById(folderId, userId);
+  if (!folder) {
+    throw Object.assign(new Error("Folder not found"), { statusCode: 404, expose: true });
+  }
+}
+
 export async function createFolder(data: {
   name: string;
   userId: string;
   parentId?: string | null;
   color?: string;
 }) {
+  await assertFolderOwnedByUser(data.parentId, data.userId);
+
   const [folder] = await db.insert(folders).values({
     name: data.name,
     userId: data.userId,
@@ -52,6 +66,7 @@ export async function updateFolder(
     if (updates.parentId === folderId) {
       throw Object.assign(new Error("A folder cannot be its own parent"), { statusCode: 400, expose: true });
     }
+    await assertFolderOwnedByUser(updates.parentId, userId);
     // Walk up the tree to detect cycles
     let currentId: string | null = updates.parentId;
     while (currentId) {

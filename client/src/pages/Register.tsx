@@ -21,7 +21,7 @@ export default function Register() {
     setError("");
     try {
       await register(email, password, name);
-      navigate("/");
+      navigate("/app");
     } catch {
       setError("Registration failed");
     } finally {

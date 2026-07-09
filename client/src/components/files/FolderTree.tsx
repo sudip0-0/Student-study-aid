@@ -187,7 +187,7 @@ function FolderNode({
                 key={file.id}
                 draggable
                 onDragStart={(e) => { e.dataTransfer.setData("text/file-id", file.id); }}
-                onClick={() => navigate(`/study/${file.id}`)}
+                onClick={() => navigate(`/app/study/${file.id}`)}
                 onDoubleClick={(e) => { e.preventDefault(); onFileRename(file.id, file.name); }}
                 onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onFileContextMenu(e, file.id, file.name); }}
                 className="w-full flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-foreground rounded-md transition-colors cursor-grab active:cursor-grabbing"
@@ -312,7 +312,7 @@ export default function FolderTree({ activeFolderId, onSelect, onUploadToFolder 
             variant="ghost" size="icon" className="h-7 w-7"
             onClick={async () => {
               const file = await createBlankFile.mutateAsync({ name: "Untitled Note", folderId: activeFolderId });
-              navigate(`/study/${file.id}`);
+              navigate(`/app/study/${file.id}`);
             }}
             title="New note"
             aria-label="Create new note"
@@ -430,7 +430,7 @@ export default function FolderTree({ activeFolderId, onSelect, onUploadToFolder 
                   key={file.id}
                   draggable
                   onDragStart={(e) => { e.dataTransfer.setData("text/file-id", file.id); }}
-                  onClick={() => navigate(`/study/${file.id}`)}
+                  onClick={() => navigate(`/app/study/${file.id}`)}
                   onDoubleClick={(e) => { e.preventDefault(); handleFileRenameStart(file.id, file.name); }}
                   onContextMenu={(e) => { e.preventDefault(); handleFileContextMenu(e, file.id, file.name); }}
                   className="w-full flex items-center gap-1.5 px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-foreground rounded-md transition-colors cursor-grab active:cursor-grabbing"
@@ -457,7 +457,7 @@ export default function FolderTree({ activeFolderId, onSelect, onUploadToFolder 
             onClick={async () => {
               const file = await createBlankFile.mutateAsync({ name: "Untitled Note", folderId: contextMenu.folderId });
               setContextMenu(null);
-              navigate(`/study/${file.id}`);
+              navigate(`/app/study/${file.id}`);
             }}
           >
             <NotebookPen className="h-3.5 w-3.5" /> New Note

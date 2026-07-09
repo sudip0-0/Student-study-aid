@@ -18,14 +18,22 @@ export default function AIStudyGate({ file, hasApiKey, children }: AIStudyGatePr
       <div className="neo-empty space-y-3 p-6 text-center">
         <p className="text-sm font-extrabold">OpenRouter API key required</p>
         <p className="text-xs font-bold text-muted-foreground">
-          Add your API key in Settings to use summaries, quizzes, flashcards, and chat.
+          Add your API key in Settings, then return here to generate summaries, quizzes, and chat.
         </p>
-        <Link
-          to="/settings"
-          className="inline-flex min-h-10 items-center justify-center rounded-md border-2 border-border bg-primary px-4 py-2 text-xs font-extrabold shadow-neoSm"
-        >
-          Open Settings
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Link
+            to="/app/settings"
+            className="inline-flex min-h-10 items-center justify-center rounded-md border-2 border-border bg-primary px-4 py-2 text-xs font-extrabold shadow-neoSm"
+          >
+            1. Open Settings
+          </Link>
+          <Link
+            to="/app"
+            className="inline-flex min-h-10 items-center justify-center rounded-md border-2 border-border bg-surface px-4 py-2 text-xs font-extrabold shadow-neoSm"
+          >
+            Setup checklist
+          </Link>
+        </div>
       </div>
     );
   }

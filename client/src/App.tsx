@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/auth";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -33,15 +34,17 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
-        <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
-        <Route path="/" element={<AppShell />}>
+        <Route path="/" element={user ? <Navigate to="/app" replace /> : <Landing />} />
+        <Route path="/login" element={!user ? <Login /> : <Navigate to="/app" replace />} />
+        <Route path="/register" element={!user ? <Register /> : <Navigate to="/app" replace />} />
+        <Route path="/app" element={<AppShell />}>
           <Route index element={<Dashboard />} />
           <Route path="study/:fileId" element={<Study />} />
           <Route path="quizzes" element={<Quizzes />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Route>
+        <Route path="*" element={<Navigate to={user ? "/app" : "/"} replace />} />
       </Routes>
     </BrowserRouter>
   );

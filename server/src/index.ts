@@ -15,6 +15,7 @@ import { flashcardRouter } from "./routes/flashcard.routes";
 import { searchRouter } from "./routes/search.routes";
 import { uploadRouter } from "./routes/upload.routes";
 import { cheatsheetRouter } from "./routes/cheatsheet.routes";
+import { chatRouter } from "./routes/chat.routes";
 import { authMiddleware } from "./middleware/auth.middleware";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { rateLimit } from "express-rate-limit";
@@ -65,10 +66,17 @@ app.use(cors({
 app.use(express.json({ limit: "1mb" }));
 
 // Rate limit AI endpoints
-const aiLimiter = rateLimit({ windowMs: 60_000, max: 10, message: { error: "Too many AI requests, try again later." } });
+const aiLimiter = rateLimit({ windowMs: 60_000, max: 30, message: { error: "Too many AI requests, try again later." } });
 
 // Rate limit auth endpoints
-const authLimiter = rateLimit({ windowMs: 60_000, max: 10, message: { error: "Too many attempts, try again later." } });
+const authLimiter = rateLimit({ windowMs: 60_000, max: 20, message: { error: "Too many attempts, try again later." } });
+
+// Rate limit uploads (storage + extraction cost)
+const uploadLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 15,
+  message: { error: "Too many uploads, try again later." },
+});
 
 // --- Routes ---
 app.use("/api/auth", authLimiter, authRouter);
@@ -76,11 +84,12 @@ app.use("/api/files", authMiddleware, fileRouter);
 app.use("/api/folders", authMiddleware, folderRouter);
 app.use("/api/highlights", authMiddleware, highlightRouter);
 app.use("/api/notes", authMiddleware, noteRouter);
-app.use("/api/upload", express.json({ limit: "50mb" }), uploadRouter);
+app.use("/api/upload", uploadLimiter, express.json({ limit: "50mb" }), uploadRouter);
 app.use("/api/ai", authMiddleware, aiLimiter, aiRouter);
 app.use("/api/quizzes", authMiddleware, quizRouter);
 app.use("/api/flashcards", authMiddleware, flashcardRouter);
 app.use("/api/cheatsheets", authMiddleware, cheatsheetRouter);
+app.use("/api/chat", authMiddleware, chatRouter);
 app.use("/api/search", authMiddleware, searchRouter);
 
 // Health check (deployment / uptime probes)

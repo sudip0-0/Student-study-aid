@@ -63,7 +63,7 @@ export default function Study() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
         <p className="text-sm text-muted-foreground">Document not found.</p>
-        <Link to="/" className="text-sm text-primary hover:underline">
+        <Link to="/app" className="text-sm text-primary hover:underline">
           Back to Dashboard
         </Link>
       </div>
@@ -80,7 +80,7 @@ export default function Study() {
     <div className="flex h-full flex-col overflow-hidden">
       <div className="flex shrink-0 items-center gap-3 border-b-2 border-border bg-surface px-3 py-2 sm:px-4">
         <Link
-          to="/"
+          to="/app"
           className="rounded-md border-2 border-transparent p-1 hover:border-border hover:bg-accent"
           aria-label="Back to dashboard"
         >
