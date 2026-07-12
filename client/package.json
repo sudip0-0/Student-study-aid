@@ -29,7 +29,7 @@
     "isomorphic-dompurify": "^3.18.0",
     "lucide-react": "^0.447.0",
     "next-themes": "^0.3.0",
-    "pdfjs-dist": "^4.0.379",
+    "pdfjs-dist": "^6.1.200",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.53.2",
