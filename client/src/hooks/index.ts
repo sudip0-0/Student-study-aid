@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api, { getApiErrorMessage } from "../lib/api";
 import { useAuthStore } from "../store/auth";
+import { clearAccessToken } from "../lib/tokenMemory";
 import { toast } from "sonner";
 import type {
   Folder as FolderType,
@@ -636,7 +637,7 @@ export function useDeleteAccount() {
       await api.delete("/auth/settings/account", { data: { confirmation, password } });
     },
     onSuccess: () => {
-      localStorage.removeItem("accessToken");
+      clearAccessToken();
       useAuthStore.setState({ user: null, tokens: null, isAuthenticated: false });
       toast.success("Account deleted");
     },

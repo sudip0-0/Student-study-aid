@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import api from "../lib/api";
+import { setAccessToken, getAccessToken, clearAccessToken } from "../lib/tokenMemory";
 
 interface User {
   id: string;
@@ -34,20 +35,20 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async (email: string, password: string) => {
     const { data } = await api.post("/auth/login", { email, password });
-    const tokens = { accessToken: data.data.accessToken };
-    localStorage.setItem("accessToken", tokens.accessToken);
+    const tokens = { accessToken: data.data.accessToken as string };
+    setAccessToken(tokens.accessToken);
     set({ user: data.data.user, tokens, isAuthenticated: true, isInitialized: true, isInitializing: false });
   },
 
   register: async (email: string, password: string, name?: string) => {
     const { data } = await api.post("/auth/register", { email, password, name: name || email.split("@")[0] });
-    const tokens = { accessToken: data.data.accessToken };
-    localStorage.setItem("accessToken", tokens.accessToken);
+    const tokens = { accessToken: data.data.accessToken as string };
+    setAccessToken(tokens.accessToken);
     set({ user: data.data.user, tokens, isAuthenticated: true, isInitialized: true, isInitializing: false });
   },
 
   logout: () => {
-    localStorage.removeItem("accessToken");
+    clearAccessToken();
     set({ user: null, tokens: null, isAuthenticated: false, isInitialized: true, isInitializing: false });
     api.post("/auth/logout").catch(() => {});
   },
@@ -55,8 +56,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   fetchMe: async () => {
     set({ isInitializing: true });
     try {
+      if (!getAccessToken()) {
+        const { data: refreshData } = await api.post("/auth/refresh", {});
+        const token = refreshData.data.accessToken as string;
+        setAccessToken(token);
+      }
+
       const { data } = await api.get("/auth/me");
-      const accessToken = localStorage.getItem("accessToken");
+      const accessToken = getAccessToken();
       set({
         user: data.data,
         tokens: accessToken ? { accessToken } : null,
@@ -65,7 +72,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         isInitializing: false,
       });
     } catch {
-      localStorage.removeItem("accessToken");
+      clearAccessToken();
       set({
         user: null,
         tokens: null,

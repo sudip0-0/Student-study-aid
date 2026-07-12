@@ -40,10 +40,15 @@ Lumio is a student learning platform that turns passive document reading into an
 | Backend       | Node.js + Express + TypeScript                  |
 | Database      | PostgreSQL via NeonDB (serverless)              |
 | ORM           | Drizzle ORM                                     |
-| Auth          | JWT (access + refresh tokens) + bcrypt          |
+| Auth          | JWT access (memory) + httpOnly refresh + bcrypt |
+| Rate limits   | Upstash Redis                                   |
+| Jobs          | Postgres extraction_jobs + Redis locks          |
 | File Storage  | UploadThing                                     |
 | File Parsing  | pdf-parse + mammoth                             |
 | AI            | OpenRouter (user-supplied API key)              |
+| Shared types  | `@lumio/shared` workspace package               |
+
+See [docs/API.md](docs/API.md) and [DEPLOY.md](DEPLOY.md) for API inventory and production topology.
 
 ---
 
@@ -96,9 +101,12 @@ VITE_UPLOADTHING_APP_ID=your-app-id
 ### 3. Set Up the Database
 
 ```bash
-cd server
-pnpm drizzle-kit push     # Push schema to NeonDB
+pnpm db:migrate   # preferred (versioned migrations)
+# or for local prototyping only:
+pnpm db:push
 ```
+
+Also set `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` for production rate limits (optional in local dev).
 
 ### 4. Run the App
 

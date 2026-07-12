@@ -2,6 +2,7 @@ import { Router, Response } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../utils/asyncHandler";
 import { validateUUIDParam } from "../utils/validateUUID";
+import { validateBody } from "../middleware/validate";
 import {
   getHighlightsByFileId,
   createHighlight,
@@ -10,6 +11,7 @@ import {
   getFileById,
 } from "../services/file.service";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { requireUser } from "../middleware/requireUser";
 
 const createSchema = z.object({
   fileId: z.string().uuid(),
@@ -35,38 +37,34 @@ const updateSchema = z.object({
 export const highlightRouter = Router();
 
 highlightRouter.get("/:fileId", validateUUIDParam("fileId"), asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const userId = req.user.id;
-  const file = await getFileById(req.params.fileId as string, userId);
+  const user = requireUser(req, res);
+  if (!user) return;
+  const file = await getFileById(req.params.fileId as string, user.id);
   if (!file) return res.status(404).json({ error: "File not found" });
-  const highlights = await getHighlightsByFileId(req.params.fileId as string, userId);
+  const highlights = await getHighlightsByFileId(req.params.fileId as string, user.id);
   res.json({ data: highlights, message: "Highlights retrieved" });
 }));
 
-highlightRouter.post("/", asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const result = createSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
-  const userId = req.user.id;
-  const highlight = await createHighlight({ ...result.data, userId });
+highlightRouter.post("/", validateBody(createSchema), asyncHandler<AuthRequest>(async (req, res: Response) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const highlight = await createHighlight({ ...req.body, userId: user.id });
   if (!highlight) return res.status(404).json({ error: "File not found" });
   res.status(201).json({ data: highlight, message: "Highlight created" });
 }));
 
-highlightRouter.patch("/:id", validateUUIDParam("id"), asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const result = updateSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
-  const userId = req.user.id;
-  const highlight = await updateHighlight(req.params.id as string, userId, result.data);
+highlightRouter.patch("/:id", validateUUIDParam("id"), validateBody(updateSchema), asyncHandler<AuthRequest>(async (req, res: Response) => {
+  const user = requireUser(req, res);
+  if (!user) return;
+  const highlight = await updateHighlight(req.params.id as string, user.id, req.body);
   if (!highlight) return res.status(404).json({ error: "Highlight not found" });
   res.json({ data: highlight, message: "Highlight updated" });
 }));
 
 highlightRouter.delete("/:id", validateUUIDParam("id"), asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const userId = req.user.id;
-  const highlight = await deleteHighlight(req.params.id as string, userId);
+  const user = requireUser(req, res);
+  if (!user) return;
+  const highlight = await deleteHighlight(req.params.id as string, user.id);
   if (!highlight) return res.status(404).json({ error: "Highlight not found" });
   res.json({ data: highlight, message: "Highlight deleted" });
 }));

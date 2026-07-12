@@ -3,12 +3,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter server build && pnpm --filter client build",
+    "build": "pnpm --filter shared build && pnpm --filter server build && pnpm --filter client build",
     "build:server": "pnpm --filter server build",
     "build:client": "pnpm --filter client build",
+    "build:shared": "pnpm --filter shared build",
     "dev": "concurrently \"pnpm --filter server dev\" \"pnpm --filter client dev\"",
     "start": "pnpm --filter server start",
+    "test": "pnpm --filter server test",
+    "test:coverage": "pnpm --filter server test:coverage",
+    "test:e2e": "pnpm --filter client test:e2e",
     "db:push": "pnpm --filter server db:push",
+    "db:migrate": "pnpm --filter server db:migrate",
+    "db:generate": "pnpm --filter server db:generate",
     "db:studio": "pnpm --filter server db:studio"
   },
   "pnpm": {

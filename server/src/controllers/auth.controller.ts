@@ -6,6 +6,12 @@ import { users } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { AuthRequest, generateTokens } from "../middleware/auth.middleware";
 import { asyncHandler } from "../utils/asyncHandler";
+import {
+  storeRefreshToken,
+  rotateRefreshToken,
+  revokeRefreshToken,
+  isRefreshTokenValid,
+} from "../services/refreshToken.service";
 
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
 const refreshCookieName = "refreshToken";
@@ -48,6 +54,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const [user] = await db.insert(users).values({ email, password: hashed, name }).returning();
 
   const tokens = generateTokens(user.id);
+  await storeRefreshToken(user.id, tokens.refreshToken);
   setRefreshCookie(res, tokens.refreshToken);
 
   res.json({
@@ -65,6 +72,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const tokens = generateTokens(user.id);
+  await storeRefreshToken(user.id, tokens.refreshToken);
   setRefreshCookie(res, tokens.refreshToken);
 
   res.json({
@@ -73,21 +81,37 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
-export const logout = asyncHandler(async (_req: Request, res: Response) => {
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = readCookie(req, refreshCookieName);
+  if (refreshToken) {
+    await revokeRefreshToken(refreshToken);
+  }
   clearRefreshCookie(res);
   res.json({ message: "Logged out" });
 });
 
 export const refresh = asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = readCookie(req, refreshCookieName) ?? req.body.refreshToken;
+  const refreshToken = readCookie(req, refreshCookieName);
   if (!refreshToken) return res.status(400).json({ error: "No refresh token" });
 
   try {
     const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as { sub: string };
+    const valid = await isRefreshTokenValid(refreshToken, decoded.sub);
+    if (!valid) {
+      clearRefreshCookie(res);
+      return res.status(401).json({ error: "Invalid refresh token" });
+    }
+
     const [user] = await db.select().from(users).where(eq(users.id, decoded.sub));
     if (!user) return res.status(401).json({ error: "User not found" });
 
     const tokens = generateTokens(user.id);
+    const rotated = await rotateRefreshToken(refreshToken, tokens.refreshToken, user.id);
+    if (!rotated) {
+      clearRefreshCookie(res);
+      return res.status(401).json({ error: "Invalid refresh token" });
+    }
+
     setRefreshCookie(res, tokens.refreshToken);
     res.json({ data: { accessToken: tokens.accessToken }, message: "Token refreshed" });
   } catch {

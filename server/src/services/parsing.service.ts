@@ -3,6 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
+import { logger } from "../lib/logger";
 
 async function downloadFile(url: string, destPath: string): Promise<void> {
   const response = await fetch(url);
@@ -56,7 +57,7 @@ async function withDownloadedFile(
     await downloadFile(url, tmpPath);
     return await extract(tmpPath);
   } catch (err) {
-    console.error("File parsing failed:", err);
+    logger.error({ err }, "File parsing failed");
     return null;
   } finally {
     try {
@@ -106,7 +107,7 @@ export async function extractFileContent(fileType: string, url: string): Promise
     const text = await extractTxtText(tmpPath);
     return { text: text || null, html: null };
   } catch (err) {
-    console.error("File parsing failed:", err);
+    logger.error({ err }, "File parsing failed");
     return { text: null, html: null };
   } finally {
     try {

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { listFiles, getFile, getDocxPreview, reparseFile, patchFile, removeFile, createBlank } from "../controllers/file.controller";
 import { getNotes, getHighlights } from "./file.routes.helpers";
 import { validateUUIDParam } from "../utils/validateUUID";
+import { validateBody } from "../middleware/validate";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -22,19 +23,9 @@ fileRouter.get("/:id/docx-preview", validateUUIDParam("id"), getDocxPreview);
 fileRouter.post("/:id/reparse", validateUUIDParam("id"), reparseFile);
 fileRouter.get("/:id", validateUUIDParam("id"), getFile);
 
-fileRouter.post("/blank", (req, res, next) => {
-  const result = blankSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
-  req.body = result.data;
-  next();
-}, createBlank);
+fileRouter.post("/blank", validateBody(blankSchema), createBlank);
 
-fileRouter.patch("/:id", validateUUIDParam("id"), (req, res, next) => {
-  const result = updateSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
-  req.body = result.data;
-  next();
-}, patchFile);
+fileRouter.patch("/:id", validateUUIDParam("id"), validateBody(updateSchema), patchFile);
 
 fileRouter.delete("/:id", validateUUIDParam("id"), removeFile);
 

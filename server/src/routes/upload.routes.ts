@@ -5,8 +5,10 @@ import { z } from "zod";
 import { asyncHandler } from "../utils/asyncHandler";
 import { createFileRecord } from "../services/file.service";
 import { assertFolderOwnedByUser } from "../services/folder.service";
-import { runFileExtraction } from "../services/extraction.service";
+import { enqueueExtractionJob } from "../services/extractionJob.service";
 import { AuthRequest, authMiddleware } from "../middleware/auth.middleware";
+import { requireUser } from "../middleware/requireUser";
+import { verifyUploadCallbackToken } from "../utils/uploadCallback";
 
 export const uploadRouter = Router();
 const utapi = new UTApi();
@@ -24,8 +26,8 @@ const uploadThingSchema = z.object({
   type: z.enum(["pdf", "docx", "txt"]),
   url: z.string().url(),
   size: z.number().min(0).max(20 * 1024 * 1024).optional(),
-  userId: z.string().uuid(),
   folderId: z.string().uuid().nullable().optional(),
+  callbackToken: z.string().min(1),
 });
 
 const mimeByType = {
@@ -38,7 +40,6 @@ function sanitizeFileName(name: string) {
   return name.replace(/[^a-zA-Z0-9.\-_ ]/g, "_");
 }
 
-/** Canonical MIME, or octet-stream for .docx (common from Windows/Office). */
 function isAllowedMime(declared: string, type: keyof typeof mimeByType, fileName: string): boolean {
   const normalized = declared.toLowerCase();
   if (normalized === mimeByType[type]) return true;
@@ -77,13 +78,14 @@ async function validateRemoteMime(
 }
 
 uploadRouter.post("/file", authMiddleware, asyncHandler(async (req: AuthRequest, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const user = requireUser(req, res);
+  if (!user) return;
 
   const result = uploadFileSchema.safeParse(req.body);
   if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
 
   const { name, type, size, folderId, dataUrl } = result.data;
-  await assertFolderOwnedByUser(folderId, req.user.id);
+  await assertFolderOwnedByUser(folderId, user.id);
 
   const sanitizedName = sanitizeFileName(name);
   const uploadFile = fileFromDataUrl(dataUrl, sanitizedName, type);
@@ -98,11 +100,11 @@ uploadRouter.post("/file", authMiddleware, asyncHandler(async (req: AuthRequest,
     type,
     size,
     url: uploaded.data.url,
-    userId: req.user.id,
+    userId: user.id,
     folderId: folderId || undefined,
   });
 
-  void runFileExtraction(file.id, req.user.id, type, uploaded.data.url);
+  await enqueueExtractionJob(file.id, user.id);
 
   res.status(201).json({ data: file, message: "File uploaded" });
 }));
@@ -119,7 +121,12 @@ uploadRouter.post("/uploadthing", asyncHandler(async (req: Request, res: Respons
 
   const result = uploadThingSchema.safeParse(req.body);
   if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
-  const { name, type, url, size, userId, folderId } = result.data;
+  const { name, type, url, size, folderId, callbackToken } = result.data;
+
+  const userId = verifyUploadCallbackToken(callbackToken);
+  if (!userId) {
+    return res.status(401).json({ error: "Invalid upload callback token" });
+  }
 
   if (!(await validateRemoteMime(url, type, name))) {
     return res.status(400).json({ error: "File MIME type does not match file type" });
@@ -136,7 +143,7 @@ uploadRouter.post("/uploadthing", asyncHandler(async (req: Request, res: Respons
     folderId: folderId || undefined,
   });
 
-  void runFileExtraction(file.id, userId, type, url);
+  await enqueueExtractionJob(file.id, userId);
 
   res.status(201).json({ data: file, message: "File processed" });
 }));

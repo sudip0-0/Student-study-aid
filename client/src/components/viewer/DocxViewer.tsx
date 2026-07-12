@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
+import DOMPurify from "isomorphic-dompurify";
 import HighlightPopover from "./HighlightPopover";
 import { useHighlights, useCreateHighlight, useDocxPreview } from "../../hooks";
 import { getApiErrorMessage } from "../../lib/api";
@@ -39,10 +40,11 @@ function readViewMode(): ViewMode {
 }
 
 function sanitizeDocxHtml(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "input", "link", "meta", "base"],
+    FORBID_ATTR: ["style"],
+  });
 }
 
 function renderHighlightedText(

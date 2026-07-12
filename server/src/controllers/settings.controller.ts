@@ -7,15 +7,19 @@ import { decryptSecret, encryptSecret } from "../utils/encrypt";
 import { db } from "../db/index";
 import { users, files } from "../db/schema";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { requireUser } from "../middleware/requireUser";
+import { revokeAllUserRefreshTokens } from "../services/refreshToken.service";
+import { logger } from "../lib/logger";
 
 export const updateProfile = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const authed = requireUser(req, res);
+  if (!authed) return;
   const { name } = req.body;
 
   const [updated] = await db
     .update(users)
     .set({ name })
-    .where(eq(users.id, req.user.id))
+    .where(eq(users.id, authed.id))
     .returning({ id: users.id, email: users.email, name: users.name, apiKey: users.apiKey, aiModel: users.aiModel });
 
   res.json({
@@ -25,24 +29,25 @@ export const updateProfile = asyncHandler<AuthRequest>(async (req, res: Response
 });
 
 export const updateEmail = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const authed = requireUser(req, res);
+  if (!authed) return;
   const { email, password } = req.body;
 
-  const [user] = await db.select({ password: users.password }).from(users).where(eq(users.id, req.user.id));
+  const [user] = await db.select({ password: users.password }).from(users).where(eq(users.id, authed.id));
   if (!user) return res.status(404).json({ error: "User not found" });
 
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return res.status(401).json({ error: "Incorrect password" });
 
   const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
-  if (existing && existing.id !== req.user.id) {
+  if (existing && existing.id !== authed.id) {
     return res.status(400).json({ error: "Email already in use" });
   }
 
   const [updated] = await db
     .update(users)
     .set({ email })
-    .where(eq(users.id, req.user.id))
+    .where(eq(users.id, authed.id))
     .returning({ id: users.id, email: users.email, name: users.name, apiKey: users.apiKey, aiModel: users.aiModel });
 
   res.json({
@@ -52,39 +57,50 @@ export const updateEmail = asyncHandler<AuthRequest>(async (req, res: Response) 
 });
 
 export const changePassword = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const authed = requireUser(req, res);
+  if (!authed) return;
   const { currentPassword, newPassword } = req.body;
 
-  const [user] = await db.select({ password: users.password }).from(users).where(eq(users.id, req.user.id));
+  const [user] = await db.select({ password: users.password }).from(users).where(eq(users.id, authed.id));
   if (!user) return res.status(404).json({ error: "User not found" });
 
   const valid = await bcrypt.compare(currentPassword, user.password);
   if (!valid) return res.status(401).json({ error: "Incorrect current password" });
 
   const hashed = await bcrypt.hash(newPassword, 12);
-  await db.update(users).set({ password: hashed }).where(eq(users.id, req.user.id));
+  await db.update(users).set({ password: hashed }).where(eq(users.id, authed.id));
+  await revokeAllUserRefreshTokens(authed.id);
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/api/auth",
+  });
 
   res.json({ data: null, message: "Password changed" });
 });
 
 export const saveApiKey = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const authed = requireUser(req, res);
+  if (!authed) return;
   const { apiKey } = req.body;
 
   const encrypted = encryptSecret(apiKey);
-  await db.update(users).set({ apiKey: encrypted }).where(eq(users.id, req.user.id));
+  await db.update(users).set({ apiKey: encrypted }).where(eq(users.id, authed.id));
 
   res.json({ data: { hasApiKey: true }, message: "API key saved" });
 });
 
 export const updateAiModel = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const authed = requireUser(req, res);
+  if (!authed) return;
   const { aiModel } = req.body;
 
   const [updated] = await db
     .update(users)
     .set({ aiModel })
-    .where(eq(users.id, req.user.id))
+    .where(eq(users.id, authed.id))
     .returning({ id: users.id, email: users.email, name: users.name, apiKey: users.apiKey, aiModel: users.aiModel });
 
   res.json({
@@ -94,11 +110,12 @@ export const updateAiModel = asyncHandler<AuthRequest>(async (req, res: Response
 });
 
 export const testApiKey = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const authed = requireUser(req, res);
+  if (!authed) return;
   let keyToTest: string | undefined = req.body.apiKey;
 
   if (!keyToTest) {
-    const [user] = await db.select({ apiKey: users.apiKey }).from(users).where(eq(users.id, req.user.id));
+    const [user] = await db.select({ apiKey: users.apiKey }).from(users).where(eq(users.id, authed.id));
     if (!user?.apiKey) {
       return res.status(400).json({ error: "No API key configured" });
     }
@@ -122,7 +139,8 @@ export const testApiKey = asyncHandler<AuthRequest>(async (req, res: Response) =
 });
 
 export const deleteAccount = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const authed = requireUser(req, res);
+  if (!authed) return;
   const { confirmation, password } = req.body;
 
   if (confirmation !== "DELETE") {
@@ -132,25 +150,29 @@ export const deleteAccount = asyncHandler<AuthRequest>(async (req, res: Response
   const [user] = await db
     .select({ password: users.password, email: users.email })
     .from(users)
-    .where(eq(users.id, req.user.id));
+    .where(eq(users.id, authed.id));
   if (!user) return res.status(404).json({ error: "User not found" });
 
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return res.status(401).json({ error: "Incorrect password" });
 
-  // Clean up UploadThing files before deleting user
-  const userFiles = await db.select({ url: files.url }).from(files).where(eq(files.userId, req.user.id));
+  const userFiles = await db.select({ url: files.url }).from(files).where(eq(files.userId, authed.id));
+
+  await db.transaction(async (tx) => {
+    await tx.delete(users).where(eq(users.id, authed.id));
+  });
+
   if (userFiles.length > 0) {
     const utapi = new UTApi();
     const fileKeys = userFiles
       .map((f) => f.url.split("/").pop())
       .filter((k): k is string => !!k);
     if (fileKeys.length > 0) {
-      await utapi.deleteFiles(fileKeys).catch(() => {});
+      await utapi.deleteFiles(fileKeys).catch((err) => {
+        logger.error({ err, userId: authed.id }, "UploadThing delete failed after account delete");
+      });
     }
   }
-
-  await db.delete(users).where(eq(users.id, req.user.id));
 
   res.clearCookie("refreshToken", {
     httpOnly: true,

@@ -96,6 +96,8 @@ export default function AppShell() {
       titles[path] ||
       (path.startsWith("/app/study/") ? "Study — Lumio" : "Lumio");
     document.title = title;
+    const main = document.getElementById("main-content");
+    main?.focus({ preventScroll: true });
   }, [location.pathname]);
 
   const handleUploadToFolder = useCallback((folderId: string | null) => {
@@ -123,6 +125,12 @@ export default function AppShell() {
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-background text-foreground">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:border-2 focus:border-border focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-extrabold"
+      >
+        Skip to content
+      </a>
       <aside
         className={cn(
           "shrink-0 overflow-hidden border-r-2 border-border bg-surface shadow-[5px_0_0_var(--shadow)] transition-all duration-200",
@@ -232,7 +240,11 @@ export default function AppShell() {
             </div>
           </div>
         )}
-        <main className={cn("flex-1 overflow-hidden", location.pathname.startsWith("/app/study/") ? "" : "overflow-auto p-4 lg:p-6")}>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className={cn("flex-1 overflow-hidden outline-none", location.pathname.startsWith("/app/study/") ? "" : "overflow-auto p-4 lg:p-6")}
+        >
           <Outlet context={{ activeFolderId, setActiveFolderId }} />
         </main>
       </div>

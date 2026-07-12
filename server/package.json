@@ -7,20 +7,30 @@
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:migrate": "drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate",
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "uploadthing": "^7.0.0",
+    "@lumio/shared": "workspace:*",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.36.0",
     "express": "^4.21.2",
-    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "mammoth": "^1.8.0",
     "pdf-parse": "^1.1.1",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
     "postgres": "^3.4.5",
+    "uploadthing": "^7.0.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -30,8 +40,12 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.10.2",
     "@types/pdf-parse": "^1.1.4",
+    "@types/supertest": "^7.2.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "^0.28.0",
+    "supertest": "^7.2.2",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.10"
   }
 }

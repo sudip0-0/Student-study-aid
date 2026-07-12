@@ -9,6 +9,7 @@ import {
   removeFolder,
 } from "../controllers/folder.controller";
 import { validateUUIDParam } from "../utils/validateUUID";
+import { validateBody } from "../middleware/validate";
 
 export const folderRouter = Router();
 
@@ -28,18 +29,8 @@ folderRouter.get("/", listFolders);
 folderRouter.get("/all", listAllFolders);
 folderRouter.get("/:id", validateUUIDParam("id"), getFolder);
 
-folderRouter.post("/", (req, res, next) => {
-  const result = createSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
-  req.body = result.data;
-  next();
-}, createNewFolder);
+folderRouter.post("/", validateBody(createSchema), createNewFolder);
 
-folderRouter.patch("/:id", validateUUIDParam("id"), (req, res, next) => {
-  const result = updateSchema.safeParse(req.body);
-  if (!result.success) return res.status(400).json({ error: result.error.issues[0].message });
-  req.body = result.data;
-  next();
-}, patchFolder);
+folderRouter.patch("/:id", validateUUIDParam("id"), validateBody(updateSchema), patchFolder);
 
 folderRouter.delete("/:id", validateUUIDParam("id"), removeFolder);

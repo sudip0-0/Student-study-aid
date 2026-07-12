@@ -7,3 +7,4 @@ startCommand = "pnpm --filter server start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
+preDeployCommand = ["pnpm db:migrate"]

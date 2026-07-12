@@ -162,7 +162,7 @@ function PasswordSection() {
 
   return (
     <div className="app-panel space-y-4 p-4">
-      <SectionHeader title="Password" description="Use at least 8 characters." icon={LockKeyhole} />
+      <SectionHeader title="Password" description="Use at least 10 characters with a letter and a number." icon={LockKeyhole} />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="current-password">Current password</Label>
@@ -191,7 +191,7 @@ function PasswordSection() {
         <Button
           size="sm"
           onClick={() => mutation.mutate({ currentPassword, newPassword })}
-          disabled={mutation.isPending || !currentPassword || newPassword.length < 8}
+          disabled={mutation.isPending || !currentPassword || newPassword.length < 10}
         >
           {mutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
           Change Password

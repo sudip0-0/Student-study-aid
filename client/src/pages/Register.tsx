@@ -49,7 +49,17 @@ export default function Register() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input
+                id="password"
+                type="password"
+                placeholder="At least 10 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={10}
+                autoComplete="new-password"
+              />
+              <p className="text-xs font-bold text-muted-foreground">At least 10 characters with a letter and a number.</p>
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-2">

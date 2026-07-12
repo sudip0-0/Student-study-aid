@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { Upload, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import api, { getApiErrorMessage } from "../../lib/api";
@@ -21,7 +21,6 @@ function resolveFileType(file: File): "pdf" | "docx" | "txt" | null {
   if (byMime) return byMime;
 
   const name = file.name.toLowerCase();
-  // Windows/Office often sends DOCX as application/octet-stream
   if (file.type === "application/octet-stream" && name.endsWith(".docx")) return "docx";
   if (name.endsWith(".pdf")) return "pdf";
   if (name.endsWith(".docx")) return "docx";
@@ -35,6 +34,47 @@ export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    const focusable = dialog?.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    focusable?.[0]?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !dialog) return;
+      const nodes = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => !el.hasAttribute("disabled"));
+      if (nodes.length === 0) return;
+      const first = nodes[0]!;
+      const last = nodes[nodes.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      previouslyFocused.current?.focus();
+    };
+  }, [onClose]);
 
   const uploadFile = useCallback(async (file: File) => {
     const type = resolveFileType(file);
@@ -96,6 +136,7 @@ export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
       <div
+        ref={dialogRef}
         className="neo-box w-full max-w-md p-6"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -120,13 +161,13 @@ export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
           )}
         >
           <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-md border-2 border-border bg-accent shadow-neoSm">
-            <Upload className="h-6 w-6" />
+            <Upload className="h-6 w-6" aria-hidden />
           </div>
           <p className="mb-1 text-sm font-extrabold">
             {uploading ? progress : "Drag and drop a file here"}
           </p>
           {uploading && (
-            <div className="mx-auto my-3 h-3 max-w-56 overflow-hidden rounded-full border-2 border-border bg-surface-muted">
+            <div className="mx-auto my-3 h-3 max-w-56 overflow-hidden rounded-full border-2 border-border bg-surface-muted" role="progressbar" aria-valuetext={progress}>
               <div className="h-full w-2/3 animate-pulse bg-primary" />
             </div>
           )}
@@ -145,7 +186,7 @@ export default function FileUploader({ folderId, onClose }: FileUploaderProps) {
         </div>
 
         {error && (
-          <p className="mt-3 rounded-md border-2 border-border bg-danger-soft px-3 py-2 text-sm font-bold text-foreground">{error}</p>
+          <p className="mt-3 rounded-md border-2 border-border bg-danger-soft px-3 py-2 text-sm font-bold text-foreground" role="alert">{error}</p>
         )}
       </div>
     </div>

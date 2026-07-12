@@ -1,4 +1,5 @@
 import axios, { isAxiosError } from "axios";
+import { getAccessToken, setAccessToken, clearAccessToken } from "./tokenMemory";
 
 /** Prefer server `{ error }` messages over generic Axios status text. */
 export function getApiErrorMessage(error: unknown, fallback: string): string {
@@ -20,7 +21,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+  const token = getAccessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -31,7 +32,9 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
-    if (err.response?.status === 401 && !original._retry) {
+    const url = typeof original?.url === "string" ? original.url : "";
+    const isAuthRefresh = url.includes("/auth/refresh") || url.includes("/auth/login") || url.includes("/auth/register");
+    if (err.response?.status === 401 && !original._retry && !isAuthRefresh) {
       original._retry = true;
 
       if (!refreshPromise) {
@@ -43,12 +46,14 @@ api.interceptors.response.use(
           )
           .then(({ data }) => {
             const token = data.data.accessToken;
-            localStorage.setItem("accessToken", token);
+            setAccessToken(token);
             return token;
           })
           .catch(() => {
-            localStorage.removeItem("accessToken");
-            window.location.href = "/login";
+            clearAccessToken();
+            if (!window.location.pathname.startsWith("/login") && !window.location.pathname.startsWith("/register")) {
+              window.location.href = "/login";
+            }
             return "";
           })
           .finally(() => {

@@ -7,6 +7,8 @@ export { quizzes } from "./quizzes";
 export { flashcards } from "./flashcards";
 export { cheatsheets } from "./cheatsheets";
 export { chatMessages } from "./chatMessages";
+export { refreshTokens } from "./refreshTokens";
+export { extractionJobs } from "./extractionJobs";
 export {
   usersRelations,
   foldersRelations,

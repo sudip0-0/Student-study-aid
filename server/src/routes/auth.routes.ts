@@ -11,12 +11,19 @@ import {
   deleteAccount,
 } from "../controllers/settings.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
+import { validateBody } from "../middleware/validate";
 
 export const authRouter = Router();
 
+const passwordSchema = z
+  .string()
+  .min(10, "Password must be at least 10 characters")
+  .regex(/[A-Za-z]/, "Password must include a letter")
+  .regex(/[0-9]/, "Password must include a number");
+
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: passwordSchema,
   name: z.string().min(1).optional(),
 });
 
@@ -36,7 +43,7 @@ const updateEmailSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
+  newPassword: passwordSchema,
 });
 
 const saveApiKeySchema = z.object({
@@ -56,27 +63,16 @@ const deleteAccountSchema = z.object({
   password: z.string().min(1),
 });
 
-function validate<T>(schema: z.ZodType<T>) {
-  return (req: { body: unknown }, res: { status: (c: number) => { json: (b: { error: string }) => unknown } }, next: () => void) => {
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ error: result.error.issues[0].message });
-    }
-    req.body = result.data;
-    next();
-  };
-}
-
-authRouter.post("/register", validate(registerSchema), register);
-authRouter.post("/login", validate(loginSchema), login);
+authRouter.post("/register", validateBody(registerSchema), register);
+authRouter.post("/login", validateBody(loginSchema), login);
 authRouter.post("/logout", logout);
 authRouter.post("/refresh", refresh);
 authRouter.get("/me", authMiddleware, me);
 
-authRouter.patch("/settings/profile", authMiddleware, validate(updateProfileSchema), updateProfile);
-authRouter.patch("/settings/email", authMiddleware, validate(updateEmailSchema), updateEmail);
-authRouter.patch("/settings/password", authMiddleware, validate(changePasswordSchema), changePassword);
-authRouter.put("/settings/api-key", authMiddleware, validate(saveApiKeySchema), saveApiKey);
-authRouter.patch("/settings/model", authMiddleware, validate(updateAiModelSchema), updateAiModel);
-authRouter.post("/settings/test-key", authMiddleware, validate(testApiKeySchema), testApiKey);
-authRouter.delete("/settings/account", authMiddleware, validate(deleteAccountSchema), deleteAccount);
+authRouter.patch("/settings/profile", authMiddleware, validateBody(updateProfileSchema), updateProfile);
+authRouter.patch("/settings/email", authMiddleware, validateBody(updateEmailSchema), updateEmail);
+authRouter.patch("/settings/password", authMiddleware, validateBody(changePasswordSchema), changePassword);
+authRouter.put("/settings/api-key", authMiddleware, validateBody(saveApiKeySchema), saveApiKey);
+authRouter.patch("/settings/model", authMiddleware, validateBody(updateAiModelSchema), updateAiModel);
+authRouter.post("/settings/test-key", authMiddleware, validateBody(testApiKeySchema), testApiKey);
+authRouter.delete("/settings/account", authMiddleware, validateBody(deleteAccountSchema), deleteAccount);

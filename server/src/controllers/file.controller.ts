@@ -10,8 +10,10 @@ import {
 } from "../services/file.service";
 import { assertFolderOwnedByUser } from "../services/folder.service";
 import { parseDocxHtml } from "../services/parsing.service";
-import { runFileExtraction } from "../services/extraction.service";
+import { enqueueExtractionJob } from "../services/extractionJob.service";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { requireUser } from "../middleware/requireUser";
+import { logger } from "../lib/logger";
 
 const utapi = new UTApi();
 
@@ -65,14 +67,15 @@ export const getDocxPreview = asyncHandler<AuthRequest>(async (req, res: Respons
 });
 
 export const reparseFile = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const file = await getFileById(req.params.id as string, req.user.id);
+  const user = requireUser(req, res);
+  if (!user) return;
+  const file = await getFileById(req.params.id as string, user.id);
   if (!file) return res.status(404).json({ error: "File not found" });
   if (!file.url) {
     return res.status(400).json({ error: "This file cannot be re-parsed" });
   }
 
-  void runFileExtraction(file.id, req.user.id, file.type, file.url);
+  await enqueueExtractionJob(file.id, user.id);
 
   res.json({
     data: { extractionStatus: "pending" as const },
@@ -112,7 +115,7 @@ export const removeFile = asyncHandler<AuthRequest>(async (req, res: Response) =
   const key = uploadThingKeyFromUrl(file.url);
   if (key) {
     await utapi.deleteFiles(key).catch((err: unknown) => {
-      console.error("UploadThing delete failed after DB delete:", err);
+      logger.error({ err }, "UploadThing delete failed after DB delete");
     });
   }
 
