@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { Ratelimit } from "@upstash/ratelimit";
 import { getRedis, isRedisConfigured } from "../lib/redis";
 import { logger } from "../lib/logger";
+import { incr } from "../lib/metrics";
 
 type LimiterKind = "auth" | "ai" | "upload";
 
@@ -55,6 +56,7 @@ export function rateLimitMiddleware(kind: LimiterKind) {
       res.setHeader("X-RateLimit-Limit", String(result.limit));
       res.setHeader("X-RateLimit-Remaining", String(result.remaining));
       if (!result.success) {
+        incr("rate_limit_hits");
         return res.status(429).json({ error: "Too many requests, try again later." });
       }
       next();

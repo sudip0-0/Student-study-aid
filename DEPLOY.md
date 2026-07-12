@@ -51,6 +51,25 @@ pnpm db:migrate
 
 Use Neon’s **pooled** connection string in production (`DATABASE_URL`).
 
+### Staging migrate checklist
+
+Before relying on auth refresh, extraction jobs, or full-text search on a new Neon database:
+
+1. Run `pnpm db:migrate` against the staging `DATABASE_URL`.
+2. Confirm these objects exist (Neon SQL editor or `psql`):
+   - table `refresh_tokens`
+   - table `extraction_jobs`
+   - `pg_trgm` extension (and related GIN indexes from `0000_hardening.sql`)
+3. Example checks:
+
+```sql
+SELECT to_regclass('public.refresh_tokens');
+SELECT to_regclass('public.extraction_jobs');
+SELECT extname FROM pg_extension WHERE extname = 'pg_trgm';
+```
+
+4. Then hit `GET /api/health` and confirm `database: connected`.
+
 ## Upstash Redis
 
 1. Create a Redis database in Upstash (same region as Railway if possible).
@@ -101,6 +120,8 @@ pnpm start
 
 > Hosting dashboards require your own Vercel/Railway/Neon/Upstash credentials. Config files and env templates are ready; connect accounts and paste secrets to finish go-live.
 
+Root `package.json` `pnpm.overrides` pins patched `drizzle-orm`, `effect`, and `form-data` so `pnpm audit --prod --audit-level=high` stays hard-fail clean in CI.
+
 ## Smoke checklist
 
 Run against production (or local prod build) after deploy:
@@ -114,4 +135,6 @@ Run against production (or local prod build) after deploy:
 7. Re-parse failed extraction
 8. Move file via sidebar drag or dashboard drop on current folder
 9. Global search includes document text
-10. `GET /api/health` returns 200 with database + redis
+10. `GET /api/health` returns 200 with database + redis (and optional `metricsSample`)
+11. `GET /api/metrics` returns JSON counters (ops probe, no auth)
+12. Account delete: UploadThing cleanup runs before user row delete (502 if UT fails)

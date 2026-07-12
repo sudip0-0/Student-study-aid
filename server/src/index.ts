@@ -22,9 +22,12 @@ import { authMiddleware } from "./middleware/auth.middleware";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { rateLimitMiddleware } from "./middleware/rateLimit";
 import { requestIdMiddleware } from "./middleware/requestId";
+import { metricsMiddleware } from "./middleware/metricsMiddleware";
 import { initRedis, pingRedis } from "./lib/redis";
 import { logger } from "./lib/logger";
+import { snapshot } from "./lib/metrics";
 import { startExtractionWorker } from "./services/extractionJob.service";
+import { recordHttpError } from "./middleware/metricsMiddleware";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
@@ -69,31 +72,53 @@ const corsOrigins = resolveCorsOrigins();
 const app = express();
 const PORT = envResult.data.PORT ?? 3001;
 const startedAt = Date.now();
+const isProd = process.env.NODE_ENV === "production";
 
 app.use(requestIdMiddleware);
+app.use(metricsMiddleware);
 app.use(
   helmet({
     contentSecurityPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    referrerPolicy: { policy: "no-referrer" },
+    frameguard: { action: "deny" },
+    hsts: isProd ? { maxAge: 15552000, includeSubDomains: true } : false,
   })
 );
 app.use(
   pinoHttp({
     logger,
     genReqId: (req) => req.requestId || "unknown",
+    customSuccessMessage: (req, res) => {
+      if (res.statusCode >= 400) recordHttpError();
+      return `${req.method} ${req.url} ${res.statusCode}`;
+    },
   })
 );
+
+app.use((req, res, next) => {
+  const isProdEnv = process.env.NODE_ENV === "production";
+  const origin = req.headers.origin;
+  if (!origin) {
+    if (isProdEnv && req.path !== "/api/health" && req.path !== "/api/metrics") {
+      res.status(403).json({ error: "Origin required" });
+      return;
+    }
+    next();
+    return;
+  }
+  if (!corsOrigins.includes(origin)) {
+    res.status(403).json({ error: "Not allowed by CORS" });
+    return;
+  }
+  next();
+});
 
 app.use(
   cors({
     origin(origin, callback) {
-      const isProd = process.env.NODE_ENV === "production";
       if (!origin) {
-        // Allow non-browser / same-origin tooling; production browsers always send Origin
-        if (isProd) {
-          callback(null, true);
-          return;
-        }
+        // Missing Origin already gated above (prod allows only health/metrics)
         callback(null, true);
         return;
       }
@@ -122,10 +147,15 @@ app.use("/api/cheatsheets", authMiddleware, cheatsheetRouter);
 app.use("/api/chat", authMiddleware, chatRouter);
 app.use("/api/search", authMiddleware, searchRouter);
 
+app.get("/api/metrics", (_req, res) => {
+  res.json({ data: snapshot(), message: "Metrics snapshot" });
+});
+
 app.get("/api/health", async (_req, res) => {
   try {
     await db.execute(sql`select 1`);
     const redis = await pingRedis();
+    const metrics = snapshot();
     const healthy = redis === "connected" || redis === "not_configured";
     res.status(healthy ? 200 : 503).json({
       data: {
@@ -134,6 +164,10 @@ app.get("/api/health", async (_req, res) => {
         redis,
         uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
         environment: process.env.NODE_ENV ?? "development",
+        metricsSample: {
+          extractionCompleted: metrics.extraction_jobs_completed,
+          errors: metrics.http_errors_total,
+        },
       },
       message: healthy ? "Service healthy" : "Redis unavailable",
     });

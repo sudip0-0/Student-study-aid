@@ -158,21 +158,27 @@ export const deleteAccount = asyncHandler<AuthRequest>(async (req, res: Response
 
   const userFiles = await db.select({ url: files.url }).from(files).where(eq(files.userId, authed.id));
 
-  await db.transaction(async (tx) => {
-    await tx.delete(users).where(eq(users.id, authed.id));
-  });
-
+  // Delete UploadThing blobs first so we never leave orphaned user rows without storage cleanup.
   if (userFiles.length > 0) {
     const utapi = new UTApi();
     const fileKeys = userFiles
       .map((f) => f.url.split("/").pop())
       .filter((k): k is string => !!k);
     if (fileKeys.length > 0) {
-      await utapi.deleteFiles(fileKeys).catch((err) => {
-        logger.error({ err, userId: authed.id }, "UploadThing delete failed after account delete");
-      });
+      try {
+        await utapi.deleteFiles(fileKeys);
+      } catch (err) {
+        logger.error({ err, userId: authed.id }, "UploadThing delete failed before account delete");
+        return res.status(502).json({
+          error: "Could not delete stored files. Account was not deleted. Try again.",
+        });
+      }
     }
   }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(users).where(eq(users.id, authed.id));
+  });
 
   res.clearCookie("refreshToken", {
     httpOnly: true,

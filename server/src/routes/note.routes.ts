@@ -3,13 +3,13 @@ import { z } from "zod";
 import { asyncHandler } from "../utils/asyncHandler";
 import { validateUUIDParam } from "../utils/validateUUID";
 import { validateBody } from "../middleware/validate";
+import { getFileById } from "../services/file.service";
 import {
-  getFileById,
   getNotesByFileId,
   createNote,
   updateNote,
   deleteNote,
-} from "../services/file.service";
+} from "../services/note.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { requireUser } from "../middleware/requireUser";
 

@@ -181,10 +181,15 @@ function PasswordSection() {
             id="new-password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="New password (min 8 chars)"
+            placeholder="New password (min 10 chars)"
             type="password"
             className="text-sm"
+            minLength={10}
+            aria-describedby="new-password-policy"
           />
+          <p id="new-password-policy" className="text-xs font-bold text-muted-foreground">
+            At least 10 characters with a letter and a number.
+          </p>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">

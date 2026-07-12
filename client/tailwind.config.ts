@@ -2,6 +2,8 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  // Keep skip-link focus visibility when Tailwind would otherwise purge variants.
+  safelist: ["focus:not-sr-only"],
   theme: {
     extend: {
       colors: {

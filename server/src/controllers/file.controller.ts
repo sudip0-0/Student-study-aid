@@ -24,23 +24,25 @@ function uploadThingKeyFromUrl(url: string): string | null {
 }
 
 export const listFiles = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const userId = req.user.id;
+  const user = requireUser(req, res);
+  if (!user) return;
   const folderId = req.query.folderId as string | undefined;
-  const result = await getUserFiles(userId, folderId);
+  const result = await getUserFiles(user.id, folderId);
   res.json({ data: result, message: "Files retrieved" });
 });
 
 export const getFile = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const file = await getFileById(req.params.id as string, req.user.id);
+  const user = requireUser(req, res);
+  if (!user) return;
+  const file = await getFileById(req.params.id as string, user.id);
   if (!file) return res.status(404).json({ error: "File not found" });
   res.json({ data: file, message: "File retrieved" });
 });
 
 export const getDocxPreview = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const file = await getFileById(req.params.id as string, req.user.id);
+  const user = requireUser(req, res);
+  if (!user) return;
+  const file = await getFileById(req.params.id as string, user.id);
   if (!file) return res.status(404).json({ error: "File not found" });
   if (file.type !== "docx") {
     return res.status(400).json({ error: "Preview is only available for DOCX files" });
@@ -58,7 +60,7 @@ export const getDocxPreview = asyncHandler<AuthRequest>(async (req, res: Respons
     return res.status(422).json({ error: "Could not render a formatted preview for this document" });
   }
 
-  await updateFile(file.id, req.user.id, {
+  await updateFile(file.id, user.id, {
     extractedHtml: html,
     extractionStatus: "ready",
   });
@@ -84,18 +86,18 @@ export const reparseFile = asyncHandler<AuthRequest>(async (req, res: Response) 
 });
 
 export const patchFile = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const userId = req.user.id;
+  const user = requireUser(req, res);
+  if (!user) return;
   const { name, folderId, extractedText } = req.body;
 
-  const file = await getFileById(req.params.id as string, userId);
+  const file = await getFileById(req.params.id as string, user.id);
   if (!file) return res.status(404).json({ error: "File not found" });
 
   if (folderId !== undefined && folderId !== null) {
-    await assertFolderOwnedByUser(folderId, userId);
+    await assertFolderOwnedByUser(folderId, user.id);
   }
 
-  const updated = await updateFile(req.params.id as string, userId, {
+  const updated = await updateFile(req.params.id as string, user.id, {
     name,
     folderId: folderId !== undefined ? folderId : undefined,
     extractedText,
@@ -105,12 +107,12 @@ export const patchFile = asyncHandler<AuthRequest>(async (req, res: Response) =>
 });
 
 export const removeFile = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  const userId = req.user.id;
-  const file = await getFileById(req.params.id as string, userId);
+  const user = requireUser(req, res);
+  if (!user) return;
+  const file = await getFileById(req.params.id as string, user.id);
   if (!file) return res.status(404).json({ error: "File not found" });
 
-  await deleteFileRecord(req.params.id as string, userId);
+  await deleteFileRecord(req.params.id as string, user.id);
 
   const key = uploadThingKeyFromUrl(file.url);
   if (key) {
@@ -123,17 +125,18 @@ export const removeFile = asyncHandler<AuthRequest>(async (req, res: Response) =
 });
 
 export const createBlank = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const user = requireUser(req, res);
+  if (!user) return;
   const { name, folderId } = req.body;
 
-  await assertFolderOwnedByUser(folderId || undefined, req.user.id);
+  await assertFolderOwnedByUser(folderId || undefined, user.id);
 
   const file = await createFileRecord({
     name: name.replace(/[^a-zA-Z0-9.\-_ ]/g, "_"),
     type: "txt",
     size: 0,
     url: "",
-    userId: req.user.id,
+    userId: user.id,
     folderId: folderId || undefined,
     extractionStatus: "ready",
     extractedText: "",

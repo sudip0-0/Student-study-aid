@@ -1,24 +1,30 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+async function expectNoCriticalAxe(page: import("@playwright/test").Page) {
+  const results = await new AxeBuilder({ page }).analyze();
+  const critical = results.violations.filter((v) => v.impact === "critical");
+  expect(critical, JSON.stringify(critical, null, 2)).toEqual([]);
+}
+
 test.describe("public pages", () => {
-  test("landing shows brand and CTAs", async ({ page }) => {
+  test("landing shows brand and CTAs with no critical a11y violations", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("Lumio").first()).toBeVisible();
     await expect(page.getByRole("link", { name: /create free account|get started/i }).first()).toBeVisible();
+    await expectNoCriticalAxe(page);
   });
 
   test("login page has no critical a11y violations", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
-    const results = await new AxeBuilder({ page }).analyze();
-    const critical = results.violations.filter((v) => v.impact === "critical");
-    expect(critical).toEqual([]);
+    await expectNoCriticalAxe(page);
   });
 
-  test("register page renders", async ({ page }) => {
+  test("register page has no critical a11y violations", async ({ page }) => {
     await page.goto("/register");
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByLabel(/password/i).first()).toBeVisible();
+    await expectNoCriticalAxe(page);
   });
 });

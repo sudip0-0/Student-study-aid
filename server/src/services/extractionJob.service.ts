@@ -4,6 +4,7 @@ import { extractionJobs, files } from "../db/schema";
 import { runFileExtraction } from "./extraction.service";
 import { acquireLock, releaseLock } from "../lib/redis";
 import { logger } from "../lib/logger";
+import { incr } from "../lib/metrics";
 
 const MAX_ATTEMPTS = 5;
 const LOCK_TTL_SECONDS = 120;
@@ -80,6 +81,7 @@ export async function processExtractionJobsOnce(): Promise<number> {
           .update(extractionJobs)
           .set({ status: "completed", updatedAt: new Date(), lastError: null })
           .where(eq(extractionJobs.id, job.id));
+        incr("extraction_jobs_completed");
       } else {
         const attempts = job.attempts + 1;
         const backoffMs = Math.min(60_000, 2 ** attempts * 1000);
@@ -93,6 +95,7 @@ export async function processExtractionJobsOnce(): Promise<number> {
             updatedAt: new Date(),
           })
           .where(eq(extractionJobs.id, job.id));
+        if (attempts >= MAX_ATTEMPTS) incr("extraction_jobs_failed");
       }
       processed += 1;
     } catch (err) {
@@ -109,6 +112,7 @@ export async function processExtractionJobsOnce(): Promise<number> {
           updatedAt: new Date(),
         })
         .where(eq(extractionJobs.id, job.id));
+      if (attempts >= MAX_ATTEMPTS) incr("extraction_jobs_failed");
     } finally {
       await releaseLock(lockKey);
     }

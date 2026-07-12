@@ -1,22 +1,27 @@
 import { Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
-import { getFileById, getNotesByFileId, getHighlightsByFileId } from "../services/file.service";
+import { getFileById } from "../services/file.service";
+import { getNotesByFileId } from "../services/note.service";
+import { getHighlightsByFileId } from "../services/highlight.service";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { requireUser } from "../middleware/requireUser";
 
 export const getNotes = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const user = requireUser(req, res);
+  if (!user) return;
   const fileId = req.params.fileId as string;
-  const file = await getFileById(fileId, req.user.id);
+  const file = await getFileById(fileId, user.id);
   if (!file) return res.status(404).json({ error: "File not found" });
-  const notes = await getNotesByFileId(fileId, req.user.id);
+  const notes = await getNotesByFileId(fileId, user.id);
   res.json({ data: notes, message: "Notes retrieved" });
 });
 
 export const getHighlights = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const user = requireUser(req, res);
+  if (!user) return;
   const fileId = req.params.fileId as string;
-  const file = await getFileById(fileId, req.user.id);
+  const file = await getFileById(fileId, user.id);
   if (!file) return res.status(404).json({ error: "File not found" });
-  const highlights = await getHighlightsByFileId(fileId, req.user.id);
+  const highlights = await getHighlightsByFileId(fileId, user.id);
   res.json({ data: highlights, message: "Highlights retrieved" });
 });

@@ -58,8 +58,11 @@ export default function Register() {
                 required
                 minLength={10}
                 autoComplete="new-password"
+                aria-describedby="password-policy"
               />
-              <p className="text-xs font-bold text-muted-foreground">At least 10 characters with a letter and a number.</p>
+              <p id="password-policy" className="text-xs font-bold text-muted-foreground">
+                At least 10 characters with a letter and a number.
+              </p>
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-2">

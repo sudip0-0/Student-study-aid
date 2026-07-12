@@ -13,6 +13,7 @@ import {
 import { db } from "../db/index";
 import { users, files, quizzes, flashcards, cheatsheets } from "../db/schema";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { requireUser } from "../middleware/requireUser";
 import { decryptSecret } from "../utils/encrypt";
 import { AI_DOC_CHAR_LIMIT, isAiTextTruncated } from "../utils/truncateText";
 
@@ -75,17 +76,18 @@ async function getFileText(fileId: string, userId: string): Promise<string> {
 }
 
 export const summarizeDoc = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const user = requireUser(req, res);
+  if (!user) return;
   const { fileId, length } = parseBody(summarizeSchema, req.body);
   const summaryLength = length || "medium";
-  const text = await getFileText(fileId, req.user.id);
-  const { apiKey, aiModel } = await getAiSettings(req.user.id);
+  const text = await getFileText(fileId, user.id);
+  const { apiKey, aiModel } = await getAiSettings(user.id);
   const summary = await summarize(apiKey, aiModel, text, summaryLength);
 
   await db
     .update(files)
     .set({ lastSummary: summary, lastSummaryLength: summaryLength })
-    .where(and(eq(files.id, fileId), eq(files.userId, req.user.id)));
+    .where(and(eq(files.id, fileId), eq(files.userId, user.id)));
 
   res.json({
     data: {
@@ -99,15 +101,16 @@ export const summarizeDoc = asyncHandler<AuthRequest>(async (req, res: Response)
 });
 
 export const quizDoc = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const user = requireUser(req, res);
+  if (!user) return;
   const { fileId, count } = parseBody(quizSchema, req.body);
-  const text = await getFileText(fileId, req.user.id);
-  const { apiKey, aiModel } = await getAiSettings(req.user.id);
+  const text = await getFileText(fileId, user.id);
+  const { apiKey, aiModel } = await getAiSettings(user.id);
   const questions = await generateQuiz(apiKey, aiModel, text, count || 5);
   const [saved] = await db
     .insert(quizzes)
     .values({
-      userId: req.user.id,
+      userId: user.id,
       fileId,
       title: `Quiz - ${new Date().toLocaleDateString()}`,
       questions,
@@ -117,15 +120,16 @@ export const quizDoc = asyncHandler<AuthRequest>(async (req, res: Response) => {
 });
 
 export const flashcardsDoc = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const user = requireUser(req, res);
+  if (!user) return;
   const { fileId, count } = parseBody(flashcardsSchema, req.body);
-  const text = await getFileText(fileId, req.user.id);
-  const { apiKey, aiModel } = await getAiSettings(req.user.id);
+  const text = await getFileText(fileId, user.id);
+  const { apiKey, aiModel } = await getAiSettings(user.id);
   const cards = await generateFlashcards(apiKey, aiModel, text, count || 10);
   const [saved] = await db
     .insert(flashcards)
     .values({
-      userId: req.user.id,
+      userId: user.id,
       fileId,
       deckName: `Flashcards - ${new Date().toLocaleDateString()}`,
       cards,
@@ -135,15 +139,16 @@ export const flashcardsDoc = asyncHandler<AuthRequest>(async (req, res: Response
 });
 
 export const cheatsheetDoc = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const user = requireUser(req, res);
+  if (!user) return;
   const { fileId } = parseBody(cheatsheetSchema, req.body);
-  const text = await getFileText(fileId, req.user.id);
-  const { apiKey, aiModel } = await getAiSettings(req.user.id);
+  const text = await getFileText(fileId, user.id);
+  const { apiKey, aiModel } = await getAiSettings(user.id);
   const data = await generateCheatsheet(apiKey, aiModel, text);
   const [saved] = await db
     .insert(cheatsheets)
     .values({
-      userId: req.user.id,
+      userId: user.id,
       fileId,
       title: `Cheatsheet - ${new Date().toLocaleDateString()}`,
       sections: data,
@@ -153,18 +158,20 @@ export const cheatsheetDoc = asyncHandler<AuthRequest>(async (req, res: Response
 });
 
 export const explainDoc = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const user = requireUser(req, res);
+  if (!user) return;
   const { text, level } = parseBody(explainSchema, req.body);
-  const { apiKey, aiModel } = await getAiSettings(req.user.id);
+  const { apiKey, aiModel } = await getAiSettings(user.id);
   const data = await explain(apiKey, aiModel, text, level || "moderate");
   res.json({ data, message: "Explanation generated" });
 });
 
 export const chatDoc = asyncHandler<AuthRequest>(async (req, res: Response) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  const user = requireUser(req, res);
+  if (!user) return;
   const { fileId, messages } = parseBody(chatSchema, req.body);
-  const text = await getFileText(fileId, req.user.id);
-  const { apiKey, aiModel } = await getAiSettings(req.user.id);
+  const text = await getFileText(fileId, user.id);
+  const { apiKey, aiModel } = await getAiSettings(user.id);
   const data = await chat(apiKey, aiModel, text, messages);
   res.json({ data, message: "Chat response generated" });
 });

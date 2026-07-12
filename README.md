@@ -106,6 +106,8 @@ pnpm db:migrate   # preferred (versioned migrations)
 pnpm db:push
 ```
 
+After migrating on staging/production, confirm `refresh_tokens`, `extraction_jobs`, and `pg_trgm` exist — see the [staging migrate checklist in DEPLOY.md](./DEPLOY.md#staging-migrate-checklist).
+
 Also set `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` for production rate limits (optional in local dev).
 
 ### 4. Run the App
@@ -155,10 +157,15 @@ Get a free key at [openrouter.ai](https://openrouter.ai).
 | `server: pnpm drizzle-kit push` | Sync schema to NeonDB            |
 | `server: pnpm drizzle-kit studio` | Open Drizzle Studio (DB GUI)  |
 | `client: pnpm dev`              | Start frontend dev server        |
+| `pnpm test`                    | Server unit tests                 |
+| `pnpm test:coverage`           | Critical-path coverage (70% gate) |
+| `pnpm test:e2e`                | Client Playwright public smoke    |
 | `pnpm build`                    | Build server + client for production |
 | `pnpm build:server`             | Build backend only               |
 | `pnpm build:client`             | Build frontend only              |
 | `client: pnpm build`            | Build client (from client/)      |
+
+Authenticated Playwright specs (`auth-reload`) stay gated behind `E2E_AUTH=1` with a live API.
 
 ---
 

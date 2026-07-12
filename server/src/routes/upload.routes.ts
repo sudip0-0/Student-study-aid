@@ -8,7 +8,7 @@ import { assertFolderOwnedByUser } from "../services/folder.service";
 import { enqueueExtractionJob } from "../services/extractionJob.service";
 import { AuthRequest, authMiddleware } from "../middleware/auth.middleware";
 import { requireUser } from "../middleware/requireUser";
-import { verifyUploadCallbackToken } from "../utils/uploadCallback";
+import { issueUploadCallbackToken, verifyUploadCallbackToken } from "../utils/uploadCallback";
 
 export const uploadRouter = Router();
 const utapi = new UTApi();
@@ -106,7 +106,10 @@ uploadRouter.post("/file", authMiddleware, asyncHandler(async (req: AuthRequest,
 
   await enqueueExtractionJob(file.id, user.id);
 
-  res.status(201).json({ data: file, message: "File uploaded" });
+  res.status(201).json({
+    data: { ...file, callbackToken: issueUploadCallbackToken(user.id) },
+    message: "File uploaded",
+  });
 }));
 
 uploadRouter.post("/uploadthing", asyncHandler(async (req: Request, res: Response) => {
